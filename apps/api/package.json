@@ -6,12 +6,15 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
+    "test": "tsx --test src/seed-contract.test.ts src/task-repository.test.ts src/task-service.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@propely-case/contracts": "*",
     "better-sqlite3": "^11.7.0",
     "cors": "^2.8.6",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "joi": "^18.0.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",

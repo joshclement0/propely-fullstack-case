@@ -25,18 +25,30 @@ npm run dev:api    # terminal 1
 npm run dev:web    # terminal 2
 ```
 
-
 | App                | URL                                            | Notes                                          |
 | ------------------ | ---------------------------------------------- | ---------------------------------------------- |
 | API (Express)      | [http://localhost:8080](http://localhost:8080) | run with `tsx`, no build step in dev           |
 | Web (Vite + React) | [http://localhost:3000](http://localhost:3000) | proxies nothing; calls the API by absolute URL |
 
-
 On first start the API creates `apps/api/tasks.db` from `seed/tasks.json` and
 `seed/properties.json`. The db file is gitignored and rebuilt from the seed, so you can
 always get back to a clean dataset: delete the file and restart the API.
 
-`npm run test` exists and exits 0. There are no tests yet.
+`npm test` runs focused contract, repository, service, and text-conversion tests.
+
+### Development checks
+
+The repository includes shared formatting, lint, and TypeScript conventions:
+
+```bash
+npm run format:check
+npm run lint
+npm run typecheck
+npm run build
+npm test
+```
+
+The checks are available from the repository root and cover every workspace.
 
 ## API contract
 
@@ -48,27 +60,24 @@ Current endpoints. You are free to change or replace them (see below).
 { "status": "ok" }
 ```
 
-
-
 ### `GET /api/tasks`
 
 Takes **no query parameters** and returns **all 1000 rows** as a JSON array in a
-single response. No pagination and no filtering. This is deliberate.
-
-Note that a task row carries `property_id`, not a property name. 
+single response. The repository resolves property names and the service maps
+storage rows to the shared public contract. Internal task and property IDs are
+not returned.
 
 ```json
 [
   {
-    "id": "task-0001",
     "title": "Skifte lyskilder til LED i garasje",
     "description": "Midlertidig løsning på plass. Permanent utbedring gjenstår.",
     "category": "Electrical",
     "status": "InProgress",
-    "property_id": "prop-004",
-    "created_at": "2025-12-25",
-    "due_date": "2026-03-01",
-    "cost_nok": 8100
+    "propertyName": "Torvhaugen Næringsbygg",
+    "createdAt": "2025-12-25",
+    "dueDate": "2026-03-01",
+    "costNok": 8100
   }
 ]
 ```
@@ -82,17 +91,12 @@ Two tables in a single local SQLite file (`better-sqlite3`): `tasks` and `proper
 
 ### `properties`
 
-
 | Column | Type | Null | Notes                                                  |
 | ------ | ---- | ---- | ------------------------------------------------------ |
 | `id`   | TEXT | no   | primary key, e.g. `prop-011`                           |
 | `name` | TEXT | no   | Norwegian free text, 40 rows, some 70 to 90 chars long |
 
-
-
-
 ### `tasks`
-
 
 | Column        | Type    | Null    | Notes                                                  |
 | ------------- | ------- | ------- | ------------------------------------------------------ |
@@ -105,9 +109,6 @@ Two tables in a single local SQLite file (`better-sqlite3`): `tasks` and `proper
 | `created_at`  | TEXT    | no      | ISO 8601 date, spread across 2022–2026                 |
 | `due_date`    | TEXT    | **yes** | ISO 8601 date, null in ~19 % of rows                   |
 | `cost_nok`    | INTEGER | **yes** | 300 – ~470 000, null in ~12 % of rows                  |
-
-
-
 
 ### Seed data
 
@@ -128,25 +129,21 @@ Extend the existing task table with new features/improvements. Use no more than 
 All five of the following are **required**:
 
 1. **Show the property name, not the id.** The table currently prints the raw
-  `property_id` (`prop-011`). It should show the property name (`Åkerveien 3`).
+   `property_id` (`prop-011`). It should show the property name (`Åkerveien 3`).
 2. **Filtering.** The user must be able to narrow the table by at least `status`,
-  `category` and property. Multiple filters must work together.
+   `category` and property. Multiple filters must work together.
 3. **Search.** A free-text search across some columns (at minimum `title`, and
-  ideally `property`_id). It must work together with the filters.
+   ideally `property`_id). It must work together with the filters.
 4. **Pagination.** The table must be paginated rather than rendering all 1000 rows at
-  once. Page size is up to you.
+   once. Page size is up to you.
 5. **A "Download as PDF" button** that exports the task table as a PDF. The export must
-  reflect what the user is currently looking at, so the active filters and search apply  to it.
-
-
+   reflect what the user is currently looking at, so the active filters and search apply to it.
 
 ### How you build it is up to you
 
 - add any dependencies you want
 - change the API however you like, including adding, changing or replacing endpoints
 - change or restructure the frontend however you like
-
-
 
 ### Out of scope
 
@@ -155,13 +152,10 @@ All five of the following are **required**:
 - Deployment
 - Tests beyond what proves your core logic works
 
-
-
 ### Practical notes
 
 - Everything runs locally. No cloud service or signup is needed for anything.
 - We want to see **several commits along the way**, not one large commit at the end.  
-Commit as you go so we can follow your reasoning.
+  Commit as you go so we can follow your reasoning.
 - Share your Github repo with "Lunke" (Kristoffer Lundquist) no later than 3 hours before the meeting.
 - Bring your computer with the case to the meeting, so we can discuss it and improve it together.
-

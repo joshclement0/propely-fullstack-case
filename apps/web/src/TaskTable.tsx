@@ -1,21 +1,24 @@
-import type { Task } from './types';
+import type { PublicTask } from '@propely-case/contracts';
+import { htmlTagsToNewlines } from './text';
 
 const COLUMNS = [
-  'ID',
   'Tittel',
   'Beskrivelse',
   'Kategori',
   'Status',
-  'Eiendom (id)',
+  'Eiendom',
   'Opprettet',
   'Frist',
   'Kostnad (NOK)',
 ] as const;
 
 /** Renders every task in a plain table. No filtering or pagination. */
-export function TaskTable({ tasks }: { tasks: Task[] }) {
+const taskRowKey = (task: PublicTask): string =>
+  [task.propertyName, task.title, task.createdAt, task.description].join('\u0000');
+
+export function TaskTable({ tasks }: { tasks: PublicTask[] }) {
   // Newest first.
-  const rows = tasks.sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const rows = [...tasks].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return (
     <div className="overflow-x-auto rounded border border-slate-200 bg-white">
@@ -30,25 +33,18 @@ export function TaskTable({ tasks }: { tasks: Task[] }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((task, index) => (
-            <tr key={index} className="border-t border-slate-200 align-top">
-              <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-500">
-                {task.id}
-              </td>
+          {rows.map((task) => (
+            <tr key={taskRowKey(task)} className="border-t border-slate-200 align-top">
               <td className="px-3 py-2">{task.title}</td>
-              {/* Descriptions may contain line breaks from the old system. */}
-              <td
-                className="px-3 py-2 text-slate-600"
-                dangerouslySetInnerHTML={{ __html: task.description.replace(/\n/g, '<br />') }}
-              />
+              <td className="whitespace-pre-line px-3 py-2 text-slate-600">
+                {htmlTagsToNewlines(task.description)}
+              </td>
               <td className="whitespace-nowrap px-3 py-2">{task.category}</td>
               <td className="whitespace-nowrap px-3 py-2">{task.status}</td>
-              <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-500">
-                {task.property_id}
-              </td>
-              <td className="whitespace-nowrap px-3 py-2 text-slate-600">{task.created_at}</td>
-              <td className="whitespace-nowrap px-3 py-2 text-slate-600">{task.due_date ?? '—'}</td>
-              <td className="whitespace-nowrap px-3 py-2 text-right">{task.cost_nok || '—'}</td>
+              <td className="px-3 py-2">{task.propertyName}</td>
+              <td className="whitespace-nowrap px-3 py-2 text-slate-600">{task.createdAt}</td>
+              <td className="whitespace-nowrap px-3 py-2 text-slate-600">{task.dueDate ?? '—'}</td>
+              <td className="whitespace-nowrap px-3 py-2 text-right">{task.costNok ?? '—'}</td>
             </tr>
           ))}
         </tbody>

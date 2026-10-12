@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react';
 
-import type { Task } from './types';
+import type { PublicTask } from '@propely-case/contracts';
 
 import { fetchTasks } from './api';
 import { TaskTable } from './TaskTable';
 
 export function App() {
-  const [tasks, setTasks] = useState<Task[] | null>(null);
-  const [taskCount, setTaskCount] = useState(0);
+  const [tasks, setTasks] = useState<PublicTask[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchTasks().then((result) => {
-      setTasks(result);
-      setTaskCount(result.length);
-    });
+    void fetchTasks()
+      .then(setTasks)
+      .catch((requestError: unknown) => {
+        setError(requestError instanceof Error ? requestError.message : 'Ukjent feil');
+      });
   }, []);
 
   return (
@@ -22,7 +22,7 @@ export function App() {
       <header className="border-b border-slate-200 bg-white px-6 py-4">
         <h1 className="text-lg font-semibold">Vedlikeholdsoppgaver</h1>
         <p className="text-sm text-slate-500">
-          {tasks ? `${taskCount} oppgaver` : 'Laster oppgaver …'}
+          {tasks ? `${tasks.length} oppgaver` : 'Laster oppgaver …'}
         </p>
       </header>
 

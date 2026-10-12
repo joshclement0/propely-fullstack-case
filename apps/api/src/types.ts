@@ -1,25 +1,7 @@
-/**
- * Task domain types for the API.
- *
- * The same enum values are mirrored by CHECK constraints in the SQLite schema
- * (apps/api/src/db.ts).
- */
-
-export const TASK_CATEGORIES = [
-  'FireSafety',
-  'Plumbing',
-  'Electrical',
-  'Ventilation',
-  'Cleaning',
-  'Outdoor',
-] as const;
-export type TaskCategory = (typeof TASK_CATEGORIES)[number];
-
-export const TASK_STATUSES = ['New', 'InProgress', 'Completed', 'Rejected'] as const;
-export type TaskStatus = (typeof TASK_STATUSES)[number];
+import type { TaskCategory, TaskStatus } from '@propely-case/contracts';
 
 /** A single task, exactly as stored in SQLite. */
-export interface Task {
+export interface SeedTask {
   id: string;
   title: string;
   description: string;
@@ -34,7 +16,24 @@ export interface Task {
 }
 
 /** A property that tasks belong to, as stored in SQLite. */
-export interface Property {
+export interface SeedProperty {
   id: string;
   name: string;
+}
+
+export interface SeedData {
+  tasks: SeedTask[];
+  properties: SeedProperty[];
+}
+
+/** Database projection used by the repository. It deliberately excludes IDs. */
+export interface TaskRow {
+  title: string;
+  description: string;
+  category: TaskCategory;
+  status: TaskStatus;
+  property_name: string;
+  created_at: string;
+  due_date: string | null;
+  cost_nok: number | null;
 }

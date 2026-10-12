@@ -1,0 +1,14 @@
+# Dependencies and generated output
+node_modules/
+dist/
+apps/web/dist/
+
+# Generated or fixed data
+package-lock.json
+seed/*.json
+
+# Local SQLite files
+*.db
+*.db-*
+*.sqlite
+*.sqlite3

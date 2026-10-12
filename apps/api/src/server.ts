@@ -1,12 +1,22 @@
 import cors from 'cors';
 import express from 'express';
-import { openDatabase } from './db.js';
-import type { Task } from './types.js';
+import { databaseNeedsSeed, DB_PATH, loadSeedData, openDatabase } from './db.js';
+import { createTaskRepository } from './task-repository.js';
+import { createTaskService } from './task-service.js';
 
 const PORT = Number(process.env.PORT ?? 8080);
 
-const db = openDatabase();
-const selectAllTasks = db.prepare<[], Task>('SELECT * FROM tasks');
+const needsSeed = databaseNeedsSeed();
+const repository = createTaskRepository(openDatabase());
+const taskService = createTaskService(repository);
+
+if (needsSeed) {
+  const seedData = loadSeedData();
+  taskService.initialize(seedData);
+  console.log(
+    `Built ${DB_PATH} from seed (${seedData.properties.length} properties, ${seedData.tasks.length} tasks).`,
+  );
+}
 
 const app = express();
 
@@ -18,10 +28,10 @@ app.get('/api/health', (_req, res) => {
 
 app.get('/api/tasks', (_req, res) => {
   try {
-    res.json(selectAllTasks.all());
-  } catch {
-    // Fail soft so the table always renders.
-    res.json([]);
+    res.json(taskService.listTasks());
+  } catch (error) {
+    console.error('Failed to list tasks.', error);
+    res.status(500).json({ error: 'Could not load tasks.' });
   }
 });
 
