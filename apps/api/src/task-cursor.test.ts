@@ -28,6 +28,9 @@ void test('round-trips an opaque cursor for the active query', () => {
     pagination_key: 'public-page-key',
   });
   assert.equal(cursor.includes('task-001'), false);
+  const decodedCursor = Buffer.from(cursor, 'base64url').toString('utf8');
+  assert.equal(decodedCursor.includes('sortBy'), false);
+  assert.equal(decodedCursor.includes('sortDirection'), false);
 });
 
 void test('rejects malformed cursors and cursors from a different query', () => {

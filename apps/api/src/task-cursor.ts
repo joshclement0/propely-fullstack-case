@@ -1,6 +1,4 @@
 import {
-  TASK_SORT_DIRECTIONS,
-  TASK_SORT_FIELDS,
   type TaskListQuery,
   type TaskSortDirection,
   type TaskSortField,
@@ -16,21 +14,18 @@ export interface TaskCursorPosition {
   pagination_key: string;
 }
 
-interface TaskCursorPayload extends TaskCursorPosition {
-  version: 1;
+interface TaskCursorPayload {
+  version: 2;
   queryFingerprint: string;
+  value: string | number | null;
+  created_at: string;
+  pagination_key: string;
 }
 
 export class TaskCursorValidationError extends Error {}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
-
-const isSortField = (value: unknown): value is TaskSortField =>
-  typeof value === 'string' && TASK_SORT_FIELDS.some((field) => field === value);
-
-const isSortDirection = (value: unknown): value is TaskSortDirection =>
-  typeof value === 'string' && TASK_SORT_DIRECTIONS.some((direction) => direction === value);
 
 function isCursorValue(sortBy: TaskSortField, value: unknown): value is string | number | null {
   if (sortBy === 'costNok') {
@@ -74,10 +69,8 @@ function getSortValue(task: TaskRecord, sortBy: TaskSortField): string | number 
 export function createTaskCursor(task: TaskRecord, query: TaskListQuery): string {
   const sortBy = query.sortBy ?? 'createdAt';
   const payload: TaskCursorPayload = {
-    version: 1,
+    version: 2,
     queryFingerprint: queryFingerprint(query),
-    sortBy,
-    sortDirection: query.sortDirection ?? 'desc',
     value: getSortValue(task, sortBy),
     created_at: task.created_at,
     pagination_key: task.pagination_key,
@@ -87,6 +80,8 @@ export function createTaskCursor(task: TaskRecord, query: TaskListQuery): string
 }
 
 export function parseTaskCursor(cursor: string, query: TaskListQuery): TaskCursorPosition {
+  const sortBy = query.sortBy ?? 'createdAt';
+  const sortDirection = query.sortDirection ?? 'desc';
   let value: unknown;
   try {
     value = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
@@ -96,28 +91,22 @@ export function parseTaskCursor(cursor: string, query: TaskListQuery): TaskCurso
 
   if (
     !isRecord(value) ||
-    value.version !== 1 ||
+    value.version !== 2 ||
     typeof value.queryFingerprint !== 'string' ||
-    !isSortField(value.sortBy) ||
-    !isSortDirection(value.sortDirection) ||
-    !isCursorValue(value.sortBy, value.value) ||
+    !isCursorValue(sortBy, value.value) ||
     typeof value.created_at !== 'string' ||
     typeof value.pagination_key !== 'string'
   ) {
     throw new TaskCursorValidationError('Invalid task cursor.');
   }
 
-  if (
-    value.queryFingerprint !== queryFingerprint(query) ||
-    value.sortBy !== (query.sortBy ?? 'createdAt') ||
-    value.sortDirection !== (query.sortDirection ?? 'desc')
-  ) {
+  if (value.queryFingerprint !== queryFingerprint(query)) {
     throw new TaskCursorValidationError('Task cursor does not match the active query.');
   }
 
   return {
-    sortBy: value.sortBy,
-    sortDirection: value.sortDirection,
+    sortBy,
+    sortDirection,
     value: value.value,
     created_at: value.created_at,
     pagination_key: value.pagination_key,

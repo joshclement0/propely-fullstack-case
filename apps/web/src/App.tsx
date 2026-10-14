@@ -4,18 +4,23 @@ import {
   TASK_CATEGORIES,
   TASK_STATUSES,
   type PublicTaskPage,
-  type TaskCategory,
   type TaskListQuery,
-  type TaskSortDirection,
   type TaskSortField,
-  type TaskStatus,
 } from '@propely-case/contracts';
 
 import { fetchTaskPage } from './api';
 import { Button, Heading, Input, Select, Text, type SelectOption } from './components';
 import { TaskTable } from './TaskTable';
-
-const PAGE_SIZES = [20, 50, 100] as const;
+import {
+  DEFAULT_TASK_VIEW_QUERY,
+  PAGE_SIZES,
+  parseCategory,
+  parsePageSize,
+  parseStatus,
+  parseTaskViewQuery,
+  serializeTaskViewQuery,
+  type TaskViewQuery,
+} from './task-view-query';
 
 const STATUS_OPTIONS: readonly SelectOption[] = [
   { value: '', label: 'Alle statuser' },
@@ -32,38 +37,7 @@ const PAGE_SIZE_OPTIONS: readonly SelectOption[] = PAGE_SIZES.map((size) => ({
   label: String(size),
 }));
 
-interface TaskViewQuery {
-  search: string;
-  status: TaskStatus | '';
-  category: TaskCategory | '';
-  propertyName: string;
-  sortBy: TaskSortField;
-  sortDirection: TaskSortDirection;
-  pageSize: (typeof PAGE_SIZES)[number];
-}
-
-const INITIAL_QUERY: TaskViewQuery = {
-  search: '',
-  status: '',
-  category: '',
-  propertyName: '',
-  sortBy: 'createdAt',
-  sortDirection: 'desc',
-  pageSize: 20,
-};
-
-const parseStatus = (value: string): TaskStatus | '' =>
-  TASK_STATUSES.find((status) => status === value) ?? '';
-
-const parseCategory = (value: string): TaskCategory | '' =>
-  TASK_CATEGORIES.find((category) => category === value) ?? '';
-
-const parsePageSize = (value: string): TaskViewQuery['pageSize'] => {
-  const pageSize = Number(value);
-  return PAGE_SIZES.find((size) => size === pageSize) ?? INITIAL_QUERY.pageSize;
-};
-
-const toApiQuery = (query: TaskViewQuery, cursor?: string): TaskListQuery => ({
+const toApiQuery = (query: TaskViewQuery): TaskListQuery => ({
   filter: {
     ...(query.status ? { status: query.status } : {}),
     ...(query.category ? { category: query.category } : {}),
@@ -73,22 +47,50 @@ const toApiQuery = (query: TaskViewQuery, cursor?: string): TaskListQuery => ({
   sortBy: query.sortBy,
   sortDirection: query.sortDirection,
   pageSize: query.pageSize,
-  ...(cursor ? { cursor } : {}),
+  ...(query.cursor ? { cursor: query.cursor } : {}),
 });
 
+type HistoryMode = 'push' | 'replace';
+
+const readTaskViewQuery = (): TaskViewQuery =>
+  parseTaskViewQuery(new URLSearchParams(window.location.search));
+
+const writeTaskViewQuery = (query: TaskViewQuery, mode: HistoryMode): void => {
+  const search = serializeTaskViewQuery(query).toString();
+  const url = `${window.location.pathname}?${search}${window.location.hash}`;
+
+  if (mode === 'push') window.history.pushState(null, '', url);
+  else window.history.replaceState(null, '', url);
+};
+
 export function App() {
-  const [query, setQuery] = useState<TaskViewQuery>(INITIAL_QUERY);
+  const [query, setQuery] = useState<TaskViewQuery>(readTaskViewQuery);
   const [page, setPage] = useState<PublicTaskPage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [cursorHistory, setCursorHistory] = useState<(string | undefined)[]>([undefined]);
-  const [pageIndex, setPageIndex] = useState(0);
-  const cursor = cursorHistory[pageIndex];
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [previousCursors, setPreviousCursors] = useState<string[]>([]);
+
+  useEffect(() => {
+    writeTaskViewQuery(query, 'replace');
+
+    const restoreQueryFromUrl = () => {
+      setIsLoading(true);
+      setQuery(readTaskViewQuery());
+      setPreviousCursors([]);
+    };
+
+    window.addEventListener('popstate', restoreQueryFromUrl);
+    return () => window.removeEventListener('popstate', restoreQueryFromUrl);
+    // The initial query is intentionally captured once; later URL writes happen in updateQuery.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
 
-    void fetchTaskPage(toApiQuery(query, cursor), controller.signal)
+    void fetchTaskPage(toApiQuery(query), controller.signal)
       .then((result) => {
         setPage(result);
         setError(null);
@@ -102,13 +104,14 @@ export function App() {
       });
 
     return () => controller.abort();
-  }, [cursor, query]);
+  }, [query]);
 
-  const updateQuery = (updates: Partial<TaskViewQuery>) => {
+  const updateQuery = (updates: Partial<TaskViewQuery>, historyMode: HistoryMode = 'push') => {
+    const nextQuery = { ...query, ...updates, cursor: '', page: 1 };
     setIsLoading(true);
-    setQuery((current) => ({ ...current, ...updates }));
-    setCursorHistory([undefined]);
-    setPageIndex(0);
+    setQuery(nextQuery);
+    writeTaskViewQuery(nextQuery, historyMode);
+    setPreviousCursors([]);
   };
 
   const changeSort = (field: TaskSortField) => {
@@ -120,18 +123,30 @@ export function App() {
 
   const goNext = () => {
     if (!page?.nextCursor) return;
+    const nextQuery = {
+      ...query,
+      cursor: page.nextCursor,
+      page: query.page + 1,
+    };
     setIsLoading(true);
-    setCursorHistory((history) => [
-      ...history.slice(0, pageIndex + 1),
-      page.nextCursor ?? undefined,
-    ]);
-    setPageIndex((index) => index + 1);
+    setPreviousCursors((cursors) => [...cursors, query.cursor]);
+    setQuery(nextQuery);
+    writeTaskViewQuery(nextQuery, 'push');
   };
 
   const goPrevious = () => {
-    if (pageIndex === 0) return;
+    const previousCursor = previousCursors.at(-1);
+    if (previousCursor === undefined) return;
+
+    const nextQuery = {
+      ...query,
+      cursor: previousCursor,
+      page: Math.max(1, query.page - 1),
+    };
     setIsLoading(true);
-    setPageIndex((index) => index - 1);
+    setPreviousCursors((cursors) => cursors.slice(0, -1));
+    setQuery(nextQuery);
+    writeTaskViewQuery(nextQuery, 'push');
   };
 
   const retry = () => {
@@ -139,7 +154,22 @@ export function App() {
     setQuery((current) => ({ ...current }));
   };
 
-  const clearFilters = () => updateQuery(INITIAL_QUERY);
+  const clearFilters = () => updateQuery(DEFAULT_TASK_VIEW_QUERY);
+
+  const downloadPdf = async () => {
+    if (!page?.items.length) return;
+
+    setIsDownloading(true);
+    setDownloadError(null);
+    try {
+      const { downloadTasksPdf } = await import('./pdf');
+      downloadTasksPdf(page.items);
+    } catch (downloadFailure: unknown) {
+      setDownloadError(downloadFailure instanceof Error ? downloadFailure.message : 'Ukjent feil');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -160,7 +190,7 @@ export function App() {
               title="Søk i tittel eller eiendom"
               type="search"
               value={query.search}
-              onChange={(event) => updateQuery({ search: event.target.value })}
+              onChange={(event) => updateQuery({ search: event.target.value }, 'replace')}
               placeholder="Skriv for å søke …"
               containerClassName="xl:col-span-2"
             />
@@ -183,15 +213,30 @@ export function App() {
               title="Eiendom (eksakt navn)"
               type="text"
               value={query.propertyName}
-              onChange={(event) => updateQuery({ propertyName: event.target.value })}
+              onChange={(event) => updateQuery({ propertyName: event.target.value }, 'replace')}
               placeholder="F.eks. Åkerveien 3"
             />
           </div>
 
-          <div className="mt-3 flex justify-end">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <Button
+              title={isDownloading ? 'Lager PDF …' : 'Last ned som PDF'}
+              variant="primary"
+              disabled={!page?.items.length || isLoading || isDownloading}
+              onClick={() => void downloadPdf()}
+            />
             <Button title="Nullstill" variant="ghost" onClick={clearFilters} />
           </div>
         </section>
+
+        {downloadError && (
+          <div
+            role="alert"
+            className="mb-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
+          >
+            Kunne ikke lage PDF: {downloadError}
+          </div>
+        )}
 
         {error && (
           <div
@@ -248,11 +293,11 @@ export function App() {
 
             <div className="flex items-center gap-3">
               <Text as="span" size="sm" tone="muted">
-                Side {pageIndex + 1}
+                Side {query.page}
               </Text>
               <Button
                 title="← Forrige"
-                disabled={pageIndex === 0 || isLoading}
+                disabled={previousCursors.length === 0 || isLoading}
                 onClick={goPrevious}
               />
               <Button title="Neste →" disabled={!page.nextCursor || isLoading} onClick={goNext} />

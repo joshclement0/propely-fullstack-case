@@ -22,12 +22,12 @@ const COLUMNS: Column[] = [
 const taskRowKey = (task: PublicTask): string =>
   [task.propertyName, task.title, task.createdAt, task.description].join('\u0000');
 
-const formatDate = (value: string | null): string => {
+export const formatDate = (value: string | null): string => {
   if (!value) return '—';
   return new Intl.DateTimeFormat('nb-NO').format(new Date(`${value}T00:00:00`));
 };
 
-const formatCost = (value: number | null): string => {
+export const formatCost = (value: number | null): string => {
   if (value === null) return '—';
   return new Intl.NumberFormat('nb-NO', {
     style: 'currency',
