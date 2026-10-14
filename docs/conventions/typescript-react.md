@@ -33,6 +33,23 @@ state, and memoize only when measurement or referential stability requires it.
 Never mutate props or API cache values while sorting or filtering; use immutable
 array methods or copy first.
 
+## Remote data and query state
+
+- Treat the shared contract as a compile-time dependency and the network as an
+  untrusted runtime boundary. Check non-2xx responses and validate decoded JSON
+  before storing or rendering it.
+- Keep search, filters, sorting, page size, and the current cursor in one
+  explicit query model. Serialize that model in the API module rather than
+  constructing query strings throughout components.
+- Cancel superseded requests with `AbortController`. An aborted request is not
+  a user-visible failure, but every other rejection must leave loading state and
+  surface a recoverable error.
+- Cursor navigation may keep a client-side history for Back, but changing any
+  filter, search term, sort, or page size must reset that history to the first
+  page. Never derive or edit opaque cursors in the browser.
+- Format dates and currency for the Norwegian UI at the presentation boundary;
+  keep API values in their contract form.
+
 ## Rendering and accessibility
 
 - Render user-controlled text as text. Do not use `dangerouslySetInnerHTML` for
@@ -48,6 +65,26 @@ array methods or copy first.
 - Keep tables readable with long Norwegian text, null values, and narrow
   viewports. Do not rely on color alone to convey status.
 
+## Frontend components
+
+- Reuse the primitives in `apps/web/src/components` for ordinary form controls,
+  actions, headings, and body text. Keep page-specific layout and behavior in
+  the owning feature component.
+- `Input` accepts a visible `title` and standard HTML input props. `Select`
+  accepts a visible `title`, an `options` array of `{ value, label, disabled? }`,
+  and standard HTML select props. Both generate an input id when one is not
+  supplied and associate the title with the control using a semantic label.
+- `Button` accepts its visible `title`, a `variant` (`primary`, `secondary`,
+  `ghost`, or `danger`), and standard HTML button props. It defaults to
+  `type="button"` so adding a button to a form does not accidentally submit it.
+- Use `Heading` with an explicit semantic `level` and `Text` with `size`, `tone`,
+  and `weight` when the standard type scale is sufficient. Use `className` only
+  for contextual layout such as spacing or alignment, not to redefine the
+  component's base appearance.
+- Extend a primitive only after a repeated product need appears. A specialized
+  interaction, such as a compact table-sort control, may remain local when
+  forcing it into a general primitive would make the public API less clear.
+
 ## Review checklist
 
 - Do client types exactly match the API contract?
@@ -56,3 +93,4 @@ array methods or copy first.
 - Is derived data computed without mutating its source?
 - Are list keys stable and is rendered text safe?
 - Can filters, search, pagination, and export share one explicit query state?
+- Does every query change reset cursor history and cancel obsolete requests?

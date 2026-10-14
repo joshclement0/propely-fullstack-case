@@ -33,7 +33,8 @@ changing scripts or package commands, read `docs/conventions/tooling.md`.
   validation, status codes, and response mapping.
 - `apps/api/src/task-service.ts` owns task use cases and public DTO mapping.
 - `apps/api/src/task-repository.ts` owns task SQL and storage projections.
-- `apps/api/src/db.ts` owns SQLite lifecycle and seed initialization.
+- `apps/api/src/db/` owns SQLite lifecycle, the Drizzle schema and migrations,
+  and seed validation and initialization.
 - `seed/` is fixed source data, not application output.
 - Internal task and property IDs stay inside persistence. Never send them in a
   public response or render them in the browser without a documented product

@@ -1,5 +1,6 @@
 import type { PublicTask, TaskSortDirection, TaskSortField } from '@propely-case/contracts';
 
+import { Button, Text } from './components';
 import { htmlTagsToNewlines } from './text';
 
 interface Column {
@@ -55,6 +56,10 @@ export function TaskTable({ tasks, sortBy, sortDirection, onSort }: TaskTablePro
                   ? 'ascending'
                   : 'descending'
                 : 'none';
+              const sortIndicator = isActive ? (sortDirection === 'asc' ? '▲' : '▼') : '↕';
+              const sortLabel = isActive
+                ? `${label}, sortert ${sortDirection === 'asc' ? 'stigende' : 'synkende'}`
+                : `${label}, ikke sortert`;
 
               return (
                 <th
@@ -62,19 +67,13 @@ export function TaskTable({ tasks, sortBy, sortDirection, onSort }: TaskTablePro
                   aria-sort={ariaSort}
                   className={`whitespace-nowrap px-3 py-2 font-medium ${align === 'right' ? 'text-right' : ''}`}
                 >
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded px-1 py-1 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-600"
+                  <Button
+                    title={`${label} ${sortIndicator}`}
+                    aria-label={`Sorter etter ${sortLabel}`}
+                    variant="ghost"
+                    className="border-0 px-1 py-1 text-xs uppercase tracking-wide hover:bg-slate-200 focus:ring-offset-0"
                     onClick={() => onSort(sortField)}
-                  >
-                    {label}
-                    <span
-                      aria-hidden="true"
-                      className={isActive ? 'text-sky-700' : 'text-slate-400'}
-                    >
-                      {isActive ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
-                    </span>
-                  </button>
+                  />
                 </th>
               );
             })}
@@ -84,21 +83,39 @@ export function TaskTable({ tasks, sortBy, sortDirection, onSort }: TaskTablePro
           {tasks.map((task) => (
             <tr key={taskRowKey(task)} className="border-t border-slate-200 align-top">
               <td className="min-w-72 px-3 py-3">
-                <div className="font-medium text-slate-900">{task.title}</div>
-                <div className="mt-1 max-w-xl whitespace-pre-line text-xs leading-5 text-slate-500">
+                <Text size="sm" weight="medium">
+                  {task.title}
+                </Text>
+                <Text
+                  size="xs"
+                  tone="muted"
+                  className="mt-1 max-w-xl whitespace-pre-line leading-5"
+                >
                   {htmlTagsToNewlines(task.description)}
-                </div>
+                </Text>
               </td>
-              <td className="whitespace-nowrap px-3 py-3">{task.category}</td>
-              <td className="whitespace-nowrap px-3 py-3">{task.status}</td>
-              <td className="min-w-48 px-3 py-3">{task.propertyName}</td>
-              <td className="whitespace-nowrap px-3 py-3 text-slate-600">
-                {formatDate(task.createdAt)}
+              <td className="whitespace-nowrap px-3 py-3">
+                <Text size="sm">{task.category}</Text>
               </td>
-              <td className="whitespace-nowrap px-3 py-3 text-slate-600">
-                {formatDate(task.dueDate)}
+              <td className="whitespace-nowrap px-3 py-3">
+                <Text size="sm">{task.status}</Text>
               </td>
-              <td className="whitespace-nowrap px-3 py-3 text-right">{formatCost(task.costNok)}</td>
+              <td className="min-w-48 px-3 py-3">
+                <Text size="sm">{task.propertyName}</Text>
+              </td>
+              <td className="whitespace-nowrap px-3 py-3">
+                <Text size="sm" tone="muted">
+                  {formatDate(task.createdAt)}
+                </Text>
+              </td>
+              <td className="whitespace-nowrap px-3 py-3">
+                <Text size="sm" tone="muted">
+                  {formatDate(task.dueDate)}
+                </Text>
+              </td>
+              <td className="whitespace-nowrap px-3 py-3 text-right">
+                <Text size="sm">{formatCost(task.costNok)}</Text>
+              </td>
             </tr>
           ))}
         </tbody>

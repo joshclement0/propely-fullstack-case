@@ -12,9 +12,25 @@ import {
 } from '@propely-case/contracts';
 
 import { fetchTaskPage } from './api';
+import { Button, Heading, Input, Select, Text, type SelectOption } from './components';
 import { TaskTable } from './TaskTable';
 
 const PAGE_SIZES = [20, 50, 100] as const;
+
+const STATUS_OPTIONS: readonly SelectOption[] = [
+  { value: '', label: 'Alle statuser' },
+  ...TASK_STATUSES.map((status) => ({ value: status, label: status })),
+];
+
+const CATEGORY_OPTIONS: readonly SelectOption[] = [
+  { value: '', label: 'Alle kategorier' },
+  ...TASK_CATEGORIES.map((category) => ({ value: category, label: category })),
+];
+
+const PAGE_SIZE_OPTIONS: readonly SelectOption[] = PAGE_SIZES.map((size) => ({
+  value: String(size),
+  label: String(size),
+}));
 
 interface TaskViewQuery {
   search: string;
@@ -128,8 +144,10 @@ export function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white px-4 py-5 sm:px-6">
-        <h1 className="text-xl font-semibold">Vedlikeholdsoppgaver</h1>
-        <p className="mt-1 text-sm text-slate-500">Søk, filtrer og sorter oppgavelisten.</p>
+        <Heading level={1}>Vedlikeholdsoppgaver</Heading>
+        <Text size="sm" tone="muted" className="mt-1">
+          Søk, filtrer og sorter oppgavelisten.
+        </Text>
       </header>
 
       <main className="p-4 sm:p-6">
@@ -138,69 +156,40 @@ export function App() {
           className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
         >
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <label className="text-sm font-medium text-slate-700 xl:col-span-2">
-              Søk i tittel eller eiendom
-              <input
-                type="search"
-                value={query.search}
-                onChange={(event) => updateQuery({ search: event.target.value })}
-                placeholder="Skriv for å søke …"
-                className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 font-normal shadow-sm focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-600"
-              />
-            </label>
+            <Input
+              title="Søk i tittel eller eiendom"
+              type="search"
+              value={query.search}
+              onChange={(event) => updateQuery({ search: event.target.value })}
+              placeholder="Skriv for å søke …"
+              containerClassName="xl:col-span-2"
+            />
 
-            <label className="text-sm font-medium text-slate-700">
-              Status
-              <select
-                value={query.status}
-                onChange={(event) => updateQuery({ status: parseStatus(event.target.value) })}
-                className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 font-normal shadow-sm focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-600"
-              >
-                <option value="">Alle statuser</option>
-                {TASK_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Select
+              title="Status"
+              value={query.status}
+              options={STATUS_OPTIONS}
+              onChange={(event) => updateQuery({ status: parseStatus(event.target.value) })}
+            />
 
-            <label className="text-sm font-medium text-slate-700">
-              Kategori
-              <select
-                value={query.category}
-                onChange={(event) => updateQuery({ category: parseCategory(event.target.value) })}
-                className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 font-normal shadow-sm focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-600"
-              >
-                <option value="">Alle kategorier</option>
-                {TASK_CATEGORIES.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Select
+              title="Kategori"
+              value={query.category}
+              options={CATEGORY_OPTIONS}
+              onChange={(event) => updateQuery({ category: parseCategory(event.target.value) })}
+            />
 
-            <label className="text-sm font-medium text-slate-700">
-              Eiendom (eksakt navn)
-              <input
-                type="text"
-                value={query.propertyName}
-                onChange={(event) => updateQuery({ propertyName: event.target.value })}
-                placeholder="F.eks. Åkerveien 3"
-                className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 font-normal shadow-sm focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-600"
-              />
-            </label>
+            <Input
+              title="Eiendom (eksakt navn)"
+              type="text"
+              value={query.propertyName}
+              onChange={(event) => updateQuery({ propertyName: event.target.value })}
+              placeholder="F.eks. Åkerveien 3"
+            />
           </div>
 
           <div className="mt-3 flex justify-end">
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="rounded px-3 py-2 text-sm font-medium text-sky-700 hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-600"
-            >
-              Nullstill
-            </button>
+            <Button title="Nullstill" variant="ghost" onClick={clearFilters} />
           </div>
         </section>
 
@@ -209,14 +198,10 @@ export function App() {
             role="alert"
             className="mb-4 flex items-center justify-between gap-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
           >
-            <span>Kunne ikke hente oppgaver: {error}</span>
-            <button
-              type="button"
-              onClick={retry}
-              className="rounded border border-red-300 px-3 py-1 font-medium hover:bg-red-100"
-            >
-              Prøv igjen
-            </button>
+            <Text as="span" size="sm" tone="danger">
+              Kunne ikke hente oppgaver: {error}
+            </Text>
+            <Button title="Prøv igjen" variant="danger" onClick={retry} className="py-1" />
           </div>
         )}
 
@@ -225,12 +210,16 @@ export function App() {
             <div className="absolute inset-x-0 top-0 z-10 h-1 animate-pulse bg-sky-600" />
           )}
           {!error && isLoading && !page && (
-            <p className="py-8 text-center text-sm text-slate-500">Laster oppgaver …</p>
+            <Text size="sm" tone="muted" className="py-8 text-center">
+              Laster oppgaver …
+            </Text>
           )}
           {!error && !isLoading && page?.items.length === 0 && (
             <div className="rounded-lg border border-slate-200 bg-white px-4 py-12 text-center">
-              <p className="font-medium">Ingen oppgaver funnet</p>
-              <p className="mt-1 text-sm text-slate-500">Prøv å endre søket eller filtrene.</p>
+              <Text weight="medium">Ingen oppgaver funnet</Text>
+              <Text size="sm" tone="muted" className="mt-1">
+                Prøv å endre søket eller filtrene.
+              </Text>
             </div>
           )}
           {!error && page && page.items.length > 0 && (
@@ -248,39 +237,25 @@ export function App() {
             aria-label="Paginering"
             className="mt-4 flex flex-wrap items-center justify-between gap-3"
           >
-            <label className="text-sm text-slate-600">
-              Oppgaver per side
-              <select
-                value={query.pageSize}
-                onChange={(event) => updateQuery({ pageSize: parsePageSize(event.target.value) })}
-                className="ml-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-slate-900"
-              >
-                {PAGE_SIZES.map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Select
+              title="Oppgaver per side"
+              value={query.pageSize}
+              options={PAGE_SIZE_OPTIONS}
+              onChange={(event) => updateQuery({ pageSize: parsePageSize(event.target.value) })}
+              containerClassName="flex items-center gap-2 text-slate-600"
+              className="mt-0 w-auto px-2 py-1.5"
+            />
 
             <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-600">Side {pageIndex + 1}</span>
-              <button
-                type="button"
+              <Text as="span" size="sm" tone="muted">
+                Side {pageIndex + 1}
+              </Text>
+              <Button
+                title="← Forrige"
                 disabled={pageIndex === 0 || isLoading}
                 onClick={goPrevious}
-                className="rounded border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                ← Forrige
-              </button>
-              <button
-                type="button"
-                disabled={!page.nextCursor || isLoading}
-                onClick={goNext}
-                className="rounded border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Neste →
-              </button>
+              />
+              <Button title="Neste →" disabled={!page.nextCursor || isLoading} onClick={goNext} />
             </div>
           </nav>
         )}

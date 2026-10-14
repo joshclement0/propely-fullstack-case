@@ -15,6 +15,11 @@ The recommended development setup requires Docker Desktop. Start the API and web
 ```bash
 npm run dev:docker
 ```
+or if docker compose is installed
+```bash
+docker compose up
+```
+optional flags --build, --force-recreate and -d are also recommended 
 
 Docker Compose builds separate Node 22 browser and server images from
 `apps/web/Dockerfile` and `apps/api/Dockerfile`, using workspace-focused dependencies. It
@@ -24,6 +29,11 @@ separate `node_modules` volumes. Stop the stack with:
 ```bash
 npm run dev:docker:down
 ```
+or if docker compose is installed
+```bash
+docker compose down
+```
+optional flags -v to destroy all volumes
 
 | App                | URL                                            | Notes                                   |
 | ------------------ | ---------------------------------------------- | --------------------------------------- |
