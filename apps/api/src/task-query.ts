@@ -14,7 +14,7 @@ const taskFiltersSchema = Joi.object<TaskFilters>({
   status: Joi.string().valid(...TASK_STATUSES),
   category: Joi.string().valid(...TASK_CATEGORIES),
   property_name: Joi.string().trim().min(1).max(200),
-}).unknown(false);
+});
 
 const taskListQuerySchema = Joi.object<TaskListQuery>({
   filter: taskFiltersSchema.optional(),
@@ -27,7 +27,7 @@ const taskListQuerySchema = Joi.object<TaskListQuery>({
     .default('desc'),
   cursor: Joi.string().trim().min(1).max(2048).optional(),
   pageSize: Joi.number().integer().min(1).max(MAX_TASK_PAGE_SIZE).default(DEFAULT_TASK_PAGE_SIZE),
-}).unknown(false);
+});
 
 export class TaskListQueryValidationError extends Error {}
 
@@ -36,6 +36,7 @@ export function parseTaskListQuery(value: unknown): TaskListQuery {
     abortEarly: false,
     allowUnknown: false,
     convert: true,
+    stripUnknown: { objects: true },
   });
 
   if (result.error) {

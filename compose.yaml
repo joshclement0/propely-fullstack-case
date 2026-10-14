@@ -9,8 +9,9 @@ services:
     ports:
       - '8080:8080'
     volumes:
-      - .:/workspace
-      - api_node_modules:/workspace/node_modules
+      - ./apps/api/src:/workspace/apps/api/src
+      - ./packages/contracts/src:/workspace/packages/contracts/src
+      - ./seed:/workspace/seed:ro
       - api_data:/data
     healthcheck:
       test:
@@ -42,5 +43,4 @@ services:
 
 volumes:
   api_data:
-  api_node_modules:
   web_node_modules:

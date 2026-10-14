@@ -101,8 +101,9 @@ object whose keys match the repository's database projection:
 | `cursor`                | Opaque cursor returned by the previous page                                      | none        |
 | `pageSize`              | Integer from `1` to `100`                                                        | `25`        |
 
-Unsupported parameters and invalid values return `400`. Sorting is deterministic,
-and internal task and property IDs are never returned. The database reads
+Unsupported parameters are stripped at the HTTP validation boundary, while invalid
+values for supported parameters return `400`. Sorting is deterministic, and internal
+task and property IDs are never returned. The database reads
 `pageSize + 1` tasks to detect another page, returns at most `pageSize` items,
 and supplies `nextCursor` when another page exists. Cursors are valid only with
 the same filters, search, and sorting that created them.

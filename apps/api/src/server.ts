@@ -1,11 +1,11 @@
-import { DEFAULT_TASK_PAGE_SIZE, type PublicTaskPage } from '@propely-case/contracts';
+import { isPublicTaskPage } from '@propely-case/contracts';
 import cors from 'cors';
 import express from 'express';
-import { databaseNeedsSeed, DB_PATH, loadSeedData } from './db.js';
-import { createTaskCursor, parseTaskCursor, TaskCursorValidationError } from './task-cursor.js';
+import { databaseNeedsSeed, DB_PATH } from './db/index.js';
+import { loadSeedData, seedDatabase } from './db/seed.js';
+import { TaskCursorValidationError } from './task-cursor.js';
 import { parseTaskListQuery, TaskListQueryValidationError } from './task-query.js';
-import { toPublicTask } from './task-response.js';
-import { initializeTasks, listTasks } from './task-service.js';
+import { listTasks } from './task-service.js';
 import { createRequestTimingMiddleware } from './request-timing.js';
 
 const PORT = Number(process.env.PORT ?? 8080);
@@ -14,7 +14,7 @@ const needsSeed = databaseNeedsSeed();
 
 if (needsSeed) {
   const seedData = loadSeedData();
-  initializeTasks(seedData);
+  seedDatabase(seedData);
   console.log(
     `Built ${DB_PATH} from seed (${seedData.properties.length} properties, ${seedData.tasks.length} tasks).`,
   );
@@ -33,22 +33,12 @@ app.get('/api/health', (_req, res) => {
 app.get('/api/tasks', (req, res) => {
   try {
     const query = parseTaskListQuery(req.query);
-    const pageSize = query.pageSize ?? DEFAULT_TASK_PAGE_SIZE;
-    const after = query.cursor ? parseTaskCursor(query.cursor, query) : undefined;
-    const tasks = listTasks({
-      filter: query.filter,
-      search: query.search,
-      sortBy: query.sortBy,
-      sortDirection: query.sortDirection,
-      pageSize,
-      after,
-    });
-    const pageTasks = tasks.slice(0, pageSize);
-    const lastTask = pageTasks.at(-1);
-    const response: PublicTaskPage = {
-      items: pageTasks.map(toPublicTask),
-      nextCursor: tasks.length > pageSize && lastTask ? createTaskCursor(lastTask, query) : null,
-    };
+    const response: unknown = listTasks(query);
+
+    if (!isPublicTaskPage(response)) {
+      throw new Error('Task service returned an invalid response.');
+    }
+
     res.json(response);
   } catch (error) {
     if (

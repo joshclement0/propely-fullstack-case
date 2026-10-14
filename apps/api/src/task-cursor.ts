@@ -6,7 +6,7 @@ import {
   type TaskSortField,
 } from '@propely-case/contracts';
 import { createHash } from 'node:crypto';
-import type { TaskRecord } from './schema.js';
+import type { TaskRecord } from './db/schema.js';
 
 export interface TaskCursorPosition {
   sortBy: TaskSortField;

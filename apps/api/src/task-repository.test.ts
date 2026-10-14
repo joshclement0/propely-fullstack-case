@@ -3,13 +3,20 @@ import test from 'node:test';
 
 process.env.DB_PATH = ':memory:';
 
-const { closeDatabase } = await import('./db.js');
-const { initializeTaskRepository, listTasks } = await import('./task-repository.js');
+const { closeDatabase } = await import('./db/index.js');
+const { seedDatabase } = await import('./db/seed.js');
+const { listTasks } = await import('./task-repository.js');
+
+const defaultQuery = {
+  sortField: 'created_at',
+  sortDirection: 'desc',
+  limit: 25,
+} as const;
 
 void test('returns typed internal task records with resolved property names', (context) => {
   context.after(closeDatabase);
 
-  initializeTaskRepository({
+  seedDatabase({
     properties: [
       { id: 'prop-001', name: 'Åkerveien 3' },
       { id: 'prop-002', name: 'Bryggen 5' },
@@ -52,11 +59,12 @@ void test('returns typed internal task records with resolved property names', (c
   });
 
   assert.deepEqual(
-    listTasks().map((task) => task.title),
+    listTasks(defaultQuery).map((task) => task.title),
     ['Repair roof', 'Clean lobby', 'Inspect roof'],
   );
 
   const filteredTasks = listTasks({
+    ...defaultQuery,
     filter: {
       status: 'Rejected',
       category: 'Outdoor',
@@ -85,15 +93,21 @@ void test('returns typed internal task records with resolved property names', (c
 
   assert.deepEqual(
     listTasks({
+      ...defaultQuery,
       filter: { status: 'New' },
-      sortBy: 'title',
+      sortField: 'title',
       sortDirection: 'asc',
     }).map((task) => task.title),
     ['Clean lobby', 'Repair roof'],
   );
-  assert.deepEqual(listTasks({ search: '%' }), []);
+  assert.deepEqual(listTasks({ ...defaultQuery, search: '%' }), []);
 
-  const firstPage = listTasks({ sortBy: 'title', sortDirection: 'asc', pageSize: 1 });
+  const firstPage = listTasks({
+    ...defaultQuery,
+    sortField: 'title',
+    sortDirection: 'asc',
+    limit: 1,
+  });
   assert.deepEqual(
     firstPage.map((task) => task.title),
     ['Clean lobby', 'Inspect roof'],
@@ -102,35 +116,42 @@ void test('returns typed internal task records with resolved property names', (c
   assert.ok(firstTask);
   assert.deepEqual(
     listTasks({
-      sortBy: 'title',
+      ...defaultQuery,
+      sortField: 'title',
       sortDirection: 'asc',
-      pageSize: 1,
+      limit: 1,
       after: {
-        sortBy: 'title',
+        sortField: 'title',
         sortDirection: 'asc',
         value: firstTask.title,
-        created_at: firstTask.created_at,
-        pagination_key: firstTask.pagination_key,
+        createdAt: firstTask.created_at,
+        paginationKey: firstTask.pagination_key,
       },
     }).map((task) => task.title),
     ['Inspect roof', 'Repair roof'],
   );
 
-  const nullDatePage = listTasks({ sortBy: 'dueDate', sortDirection: 'asc', pageSize: 1 });
+  const nullDatePage = listTasks({
+    ...defaultQuery,
+    sortField: 'due_date',
+    sortDirection: 'asc',
+    limit: 1,
+  });
   const nullDateTask = nullDatePage[0];
   assert.ok(nullDateTask);
   assert.equal(nullDateTask.due_date, null);
   assert.deepEqual(
     listTasks({
-      sortBy: 'dueDate',
+      ...defaultQuery,
+      sortField: 'due_date',
       sortDirection: 'asc',
-      pageSize: 1,
+      limit: 1,
       after: {
-        sortBy: 'dueDate',
+        sortField: 'due_date',
         sortDirection: 'asc',
         value: null,
-        created_at: nullDateTask.created_at,
-        pagination_key: nullDateTask.pagination_key,
+        createdAt: nullDateTask.created_at,
+        paginationKey: nullDateTask.pagination_key,
       },
     }).map((task) => task.title),
     ['Clean lobby', 'Repair roof'],

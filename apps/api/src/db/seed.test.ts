@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createSeedData } from './seed-contract.js';
+import { createSeedData } from './seed.js';
 
 const validTask = {
   id: 'task-001',

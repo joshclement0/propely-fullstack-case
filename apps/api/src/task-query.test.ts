@@ -54,10 +54,27 @@ void test('accepts missing and partially populated filter objects', () => {
   });
 });
 
-void test('rejects unsupported or malformed query parameters', () => {
+void test('strips unsupported query parameters at every object boundary', () => {
+  assert.deepEqual(
+    parseTaskListQuery({
+      filter: {
+        status: 'New',
+        property_id: 'prop-001',
+      },
+      unknown: 'value',
+    }),
+    {
+      filter: { status: 'New' },
+      sortBy: 'createdAt',
+      sortDirection: 'desc',
+      pageSize: 25,
+    },
+  );
+});
+
+void test('rejects malformed values for supported query parameters', () => {
   for (const query of [
     { filter: { status: 'Archived' } },
-    { filter: { property_id: 'prop-001' } },
     { sortBy: 'id' },
     { sortDirection: 'sideways' },
     { cursor: '' },
@@ -65,7 +82,6 @@ void test('rejects unsupported or malformed query parameters', () => {
     { pageSize: 0 },
     { pageSize: 101 },
     { filter: { status: ['New', 'Completed'] } },
-    { unknown: 'value' },
   ]) {
     assert.throws(() => parseTaskListQuery(query), TaskListQueryValidationError);
   }

@@ -1,5 +1,5 @@
 import type { PublicTask } from '@propely-case/contracts';
-import type { TaskRecord } from './schema.js';
+import type { TaskRecord } from './db/schema.js';
 
 /** Removes storage-only fields and formats a task for the public API. */
 export function toPublicTask(task: TaskRecord): PublicTask {

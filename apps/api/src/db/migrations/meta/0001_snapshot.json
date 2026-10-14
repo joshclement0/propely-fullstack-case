@@ -1,0 +1,212 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "38d42402-ad6e-4061-a701-1867bfa4b703",
+  "prevId": "e503d65c-46e6-4079-862c-d1d1a8eee36c",
+  "tables": {
+    "properties": {
+      "name": "properties",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "properties_name_idx": {
+          "name": "properties_name_idx",
+          "columns": ["\"name\" COLLATE NOCASE"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "tasks": {
+      "name": "tasks",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pagination_key": {
+          "name": "pagination_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "property_id": {
+          "name": "property_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "due_date": {
+          "name": "due_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cost_nok": {
+          "name": "cost_nok",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "tasks_pagination_key_idx": {
+          "name": "tasks_pagination_key_idx",
+          "columns": ["pagination_key"],
+          "isUnique": true
+        },
+        "tasks_created_cursor_idx": {
+          "name": "tasks_created_cursor_idx",
+          "columns": ["\"created_at\" DESC", "\"pagination_key\" ASC"],
+          "isUnique": false
+        },
+        "tasks_status_created_cursor_idx": {
+          "name": "tasks_status_created_cursor_idx",
+          "columns": ["status", "\"created_at\" DESC", "\"pagination_key\" ASC"],
+          "isUnique": false
+        },
+        "tasks_category_created_cursor_idx": {
+          "name": "tasks_category_created_cursor_idx",
+          "columns": ["category", "\"created_at\" DESC", "\"pagination_key\" ASC"],
+          "isUnique": false
+        },
+        "tasks_property_created_cursor_idx": {
+          "name": "tasks_property_created_cursor_idx",
+          "columns": ["property_id", "\"created_at\" DESC", "\"pagination_key\" ASC"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "tasks_property_id_properties_id_fk": {
+          "name": "tasks_property_id_properties_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "properties",
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {
+      "properties_name_idx": {
+        "columns": {
+          "\"name\" COLLATE NOCASE": {
+            "isExpression": true
+          }
+        }
+      },
+      "tasks_created_cursor_idx": {
+        "columns": {
+          "\"created_at\" DESC": {
+            "isExpression": true
+          },
+          "\"pagination_key\" ASC": {
+            "isExpression": true
+          }
+        }
+      },
+      "tasks_status_created_cursor_idx": {
+        "columns": {
+          "\"created_at\" DESC": {
+            "isExpression": true
+          },
+          "\"pagination_key\" ASC": {
+            "isExpression": true
+          }
+        }
+      },
+      "tasks_category_created_cursor_idx": {
+        "columns": {
+          "\"created_at\" DESC": {
+            "isExpression": true
+          },
+          "\"pagination_key\" ASC": {
+            "isExpression": true
+          }
+        }
+      },
+      "tasks_property_created_cursor_idx": {
+        "columns": {
+          "\"created_at\" DESC": {
+            "isExpression": true
+          },
+          "\"pagination_key\" ASC": {
+            "isExpression": true
+          }
+        }
+      }
+    }
+  }
+}
