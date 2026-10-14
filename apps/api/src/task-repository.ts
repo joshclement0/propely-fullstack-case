@@ -1,16 +1,26 @@
-import { TASK_CATEGORIES, TASK_STATUSES } from '@propely-case/contracts';
-import type Database from 'better-sqlite3';
-import type { SeedData, TaskRow } from './types.js';
+import {
+  TASK_CATEGORIES,
+  TASK_STATUSES,
+  type TaskFilters,
+  type TaskListQuery,
+  type TaskSortField,
+} from '@propely-case/contracts';
+import { and, asc, desc, eq, sql, type AnyColumn, type SQL, type SQLWrapper } from 'drizzle-orm';
+import { getOrm } from './db.js';
+import { properties, tasks, type TaskRecord } from './schema.js';
+import type { SeedData } from './types.js';
 
 const sqlList = (values: readonly string[]): string =>
   values.map((value) => `'${value}'`).join(', ');
 
-const CREATE_TABLES_SQL = `
+const CREATE_PROPERTIES_SQL = `
   CREATE TABLE properties (
     id   TEXT PRIMARY KEY,
     name TEXT NOT NULL
-  );
+  )
+`;
 
+const CREATE_TASKS_SQL = `
   CREATE TABLE tasks (
     id            TEXT PRIMARY KEY,
     title         TEXT NOT NULL,
@@ -21,61 +31,89 @@ const CREATE_TABLES_SQL = `
     created_at    TEXT NOT NULL,
     due_date      TEXT,
     cost_nok      INTEGER
-  );
+  )
 `;
 
-const INSERT_PROPERTY_SQL = `
-  INSERT INTO properties (id, name) VALUES (@id, @name);
-`;
+const TASK_SELECTION = {
+  id: tasks.id,
+  title: tasks.title,
+  description: tasks.description,
+  category: tasks.category,
+  status: tasks.status,
+  property_id: tasks.property_id,
+  property_name: properties.name,
+  created_at: tasks.created_at,
+  due_date: tasks.due_date,
+  cost_nok: tasks.cost_nok,
+};
 
-const INSERT_TASK_SQL = `
-  INSERT INTO tasks (
-    id, title, description, category, status,
-    property_id, created_at, due_date, cost_nok
-  ) VALUES (
-    @id, @title, @description, @category, @status,
-    @property_id, @created_at, @due_date, @cost_nok
-  );
-`;
+const SORT_COLUMNS = {
+  title: sql`${tasks.title} COLLATE NOCASE`,
+  category: tasks.category,
+  status: tasks.status,
+  propertyName: sql`${properties.name} COLLATE NOCASE`,
+  createdAt: tasks.created_at,
+  dueDate: tasks.due_date,
+  costNok: tasks.cost_nok,
+} satisfies Record<TaskSortField, SQLWrapper>;
 
-const SELECT_TASKS_SQL = `
-  SELECT
-    tasks.title,
-    tasks.description,
-    tasks.category,
-    tasks.status,
-    properties.name AS property_name,
-    tasks.created_at,
-    tasks.due_date,
-    tasks.cost_nok
-  FROM tasks
-  INNER JOIN properties ON properties.id = tasks.property_id
-  ORDER BY tasks.created_at DESC, tasks.id ASC
-`;
+const FILTER_COLUMNS = {
+  status: tasks.status,
+  category: tasks.category,
+  property_name: properties.name,
+} satisfies Record<keyof TaskFilters, AnyColumn>;
 
-export interface TaskRepository {
-  initialize(seedData: SeedData): void;
-  listTasks(): TaskRow[];
+function isTaskFilterName(value: string): value is keyof TaskFilters {
+  return Object.hasOwn(FILTER_COLUMNS, value);
 }
 
-export function createTaskRepository(db: Database.Database): TaskRepository {
-  return {
-    initialize(seedData) {
-      const initializeDatabase = db.transaction(() => {
-        db.exec(CREATE_TABLES_SQL);
+function escapeLikePattern(value: string): string {
+  return value.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
+}
 
-        const insertProperty = db.prepare(INSERT_PROPERTY_SQL);
-        const insertTask = db.prepare(INSERT_TASK_SQL);
+export function initializeTaskRepository(seedData: SeedData): void {
+  getOrm().transaction((transaction) => {
+    transaction.run(sql.raw(CREATE_PROPERTIES_SQL));
+    transaction.run(sql.raw(CREATE_TASKS_SQL));
 
-        for (const property of seedData.properties) insertProperty.run(property);
-        for (const task of seedData.tasks) insertTask.run(task);
-      });
+    if (seedData.properties.length > 0) {
+      transaction.insert(properties).values(seedData.properties).run();
+    }
+    if (seedData.tasks.length > 0) {
+      transaction.insert(tasks).values(seedData.tasks).run();
+    }
+  });
+}
 
-      initializeDatabase();
-    },
+export function listTasks(query: TaskListQuery = {}): TaskRecord[] {
+  const conditions: SQL[] = [];
 
-    listTasks() {
-      return db.prepare<[], TaskRow>(SELECT_TASKS_SQL).all();
-    },
-  };
+  if (query.filter) {
+    for (const filterName in query.filter) {
+      if (isTaskFilterName(filterName)) {
+        const value = query.filter[filterName];
+        if (value !== undefined) {
+          conditions.push(eq(FILTER_COLUMNS[filterName], value));
+        }
+      }
+    }
+  }
+
+  if (query.search) {
+    const pattern = `%${escapeLikePattern(query.search)}%`;
+    conditions.push(
+      sql`(${tasks.title} LIKE ${pattern} ESCAPE '\\' COLLATE NOCASE OR ${properties.name} LIKE ${pattern} ESCAPE '\\' COLLATE NOCASE)`,
+    );
+  }
+
+  const sortBy = query.sortBy ?? 'createdAt';
+  const sort = query.sortDirection === 'asc' ? asc : desc;
+
+  return getOrm()
+    .select(TASK_SELECTION)
+    .from(tasks)
+    .innerJoin(properties, eq(properties.id, tasks.property_id))
+    .where(and(...conditions))
+    .orderBy(sort(SORT_COLUMNS[sortBy]), desc(tasks.created_at), asc(tasks.id))
+    .all();
 }

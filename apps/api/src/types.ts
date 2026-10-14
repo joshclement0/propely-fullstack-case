@@ -25,15 +25,3 @@ export interface SeedData {
   tasks: SeedTask[];
   properties: SeedProperty[];
 }
-
-/** Database projection used by the repository. It deliberately excludes IDs. */
-export interface TaskRow {
-  title: string;
-  description: string;
-  category: TaskCategory;
-  status: TaskStatus;
-  property_name: string;
-  created_at: string;
-  due_date: string | null;
-  cost_nok: number | null;
-}

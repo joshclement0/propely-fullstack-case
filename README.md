@@ -62,10 +62,27 @@ Current endpoints. You are free to change or replace them (see below).
 
 ### `GET /api/tasks`
 
-Takes **no query parameters** and returns **all 1000 rows** as a JSON array in a
-single response. The repository resolves property names and the service maps
-storage rows to the shared public contract. Internal task and property IDs are
-not returned.
+Returns matching tasks as a JSON array. All query parameters are optional and
+can be combined. Filters use bracket notation to form one `filter` object whose
+keys match the repository's database projection:
+
+| Parameter               | Accepted values                                                                  | Default     |
+| ----------------------- | -------------------------------------------------------------------------------- | ----------- |
+| `filter[status]`        | `New`, `InProgress`, `Completed`, `Rejected`                                     | all         |
+| `filter[category]`      | `FireSafety`, `Plumbing`, `Electrical`, `Ventilation`, `Cleaning`, `Outdoor`     | all         |
+| `filter[property_name]` | Exact property name                                                              | all         |
+| `search`                | Text contained in the task title or property name                                | none        |
+| `sortBy`                | `title`, `category`, `status`, `propertyName`, `createdAt`, `dueDate`, `costNok` | `createdAt` |
+| `sortDirection`         | `asc`, `desc`                                                                    | `desc`      |
+
+Unsupported parameters and invalid values return `400`. Sorting is deterministic,
+and internal task and property IDs are never returned.
+
+For example:
+
+```text
+/api/tasks?filter[status]=New&filter[category]=Outdoor&sortBy=createdAt&sortDirection=desc
+```
 
 ```json
 [
@@ -86,8 +103,9 @@ CORS is wide open (all origins), which covers the Vite dev server. There is no a
 
 ## Data model
 
-Two tables in a single local SQLite file (`better-sqlite3`): `tasks` and `properties`.
-`tasks.property_id` is a foreign key into `properties.id`, and the task row holds no property name of its own.
+Two tables in a single local SQLite file, queried through Drizzle ORM over
+`better-sqlite3`: `tasks` and `properties`. `tasks.property_id` is a foreign key
+into `properties.id`, and the task row holds no property name of its own.
 
 ### `properties`
 

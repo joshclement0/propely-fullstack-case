@@ -11,6 +11,35 @@ export type TaskCategory = (typeof TASK_CATEGORIES)[number];
 export const TASK_STATUSES = ['New', 'InProgress', 'Completed', 'Rejected'] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
+export const TASK_SORT_FIELDS = [
+  'title',
+  'category',
+  'status',
+  'propertyName',
+  'createdAt',
+  'dueDate',
+  'costNok',
+] as const;
+export type TaskSortField = (typeof TASK_SORT_FIELDS)[number];
+
+export const TASK_SORT_DIRECTIONS = ['asc', 'desc'] as const;
+export type TaskSortDirection = (typeof TASK_SORT_DIRECTIONS)[number];
+
+/** Allowlisted database projection fields accepted by GET /api/tasks. */
+export interface TaskFilters {
+  status?: TaskStatus;
+  category?: TaskCategory;
+  property_name?: string;
+}
+
+/** Optional filters and ordering accepted by GET /api/tasks. */
+export interface TaskListQuery {
+  filter?: TaskFilters;
+  search?: string;
+  sortBy?: TaskSortField;
+  sortDirection?: TaskSortDirection;
+}
+
 /** Public task data. Storage identifiers must never be added to this contract. */
 export interface PublicTask {
   title: string;

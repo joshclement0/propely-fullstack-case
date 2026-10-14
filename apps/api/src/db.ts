@@ -7,15 +7,19 @@
  */
 
 import Database from 'better-sqlite3';
+import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createSeedData } from './seed-contract.js';
+import * as schema from './schema.js';
 import type { SeedData } from './types.js';
 
 const REPO_ROOT = join(import.meta.dirname, '..', '..', '..');
 export const DB_PATH = process.env.DB_PATH ?? join(REPO_ROOT, 'apps', 'api', 'tasks.db');
 const TASKS_SEED_PATH = join(REPO_ROOT, 'seed', 'tasks.json');
 const PROPERTIES_SEED_PATH = join(REPO_ROOT, 'seed', 'properties.json');
+let database: Database.Database | undefined;
+let orm: BetterSQLite3Database<typeof schema> | undefined;
 
 function readJsonFile(path: string): unknown {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -35,8 +39,19 @@ export function databaseNeedsSeed(): boolean {
   return !existsSync(DB_PATH);
 }
 
-export function openDatabase(): Database.Database {
-  const db = new Database(DB_PATH);
-  db.pragma('foreign_keys = ON');
-  return db;
+export function getDatabase(): Database.Database {
+  database ??= new Database(DB_PATH);
+  database.pragma('foreign_keys = ON');
+  return database;
+}
+
+export function getOrm(): BetterSQLite3Database<typeof schema> {
+  orm ??= drizzle(getDatabase(), { schema });
+  return orm;
+}
+
+export function closeDatabase(): void {
+  database?.close();
+  database = undefined;
+  orm = undefined;
 }

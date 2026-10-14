@@ -1,29 +1,12 @@
-import type { PublicTask } from '@propely-case/contracts';
+import type { TaskListQuery } from '@propely-case/contracts';
+import type { TaskRecord } from './schema.js';
+import { initializeTaskRepository, listTasks as listTaskRecords } from './task-repository.js';
 import type { SeedData } from './types.js';
-import type { TaskRepository } from './task-repository.js';
 
-export interface TaskService {
-  initialize(seedData: SeedData): void;
-  listTasks(): PublicTask[];
+export function initializeTasks(seedData: SeedData): void {
+  initializeTaskRepository(seedData);
 }
 
-export function createTaskService(repository: TaskRepository): TaskService {
-  return {
-    initialize(seedData) {
-      repository.initialize(seedData);
-    },
-
-    listTasks() {
-      return repository.listTasks().map((task) => ({
-        title: task.title,
-        description: task.description,
-        category: task.category,
-        status: task.status,
-        propertyName: task.property_name,
-        createdAt: task.created_at,
-        dueDate: task.due_date,
-        costNok: task.cost_nok,
-      }));
-    },
-  };
+export function listTasks(query: TaskListQuery = {}): TaskRecord[] {
+  return listTaskRecords(query);
 }
