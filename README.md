@@ -62,9 +62,9 @@ Current endpoints. You are free to change or replace them (see below).
 
 ### `GET /api/tasks`
 
-Returns matching tasks as a JSON array. All query parameters are optional and
-can be combined. Filters use bracket notation to form one `filter` object whose
-keys match the repository's database projection:
+Returns matching tasks in a paginated response object. All query parameters are
+optional and can be combined. Filters use bracket notation to form one `filter`
+object whose keys match the repository's database projection:
 
 | Parameter               | Accepted values                                                                  | Default     |
 | ----------------------- | -------------------------------------------------------------------------------- | ----------- |
@@ -74,29 +74,37 @@ keys match the repository's database projection:
 | `search`                | Text contained in the task title or property name                                | none        |
 | `sortBy`                | `title`, `category`, `status`, `propertyName`, `createdAt`, `dueDate`, `costNok` | `createdAt` |
 | `sortDirection`         | `asc`, `desc`                                                                    | `desc`      |
+| `cursor`                | Opaque cursor returned by the previous page                                      | none        |
+| `pageSize`              | Integer from `1` to `100`                                                        | `25`        |
 
 Unsupported parameters and invalid values return `400`. Sorting is deterministic,
-and internal task and property IDs are never returned.
+and internal task and property IDs are never returned. The database reads
+`pageSize + 1` tasks to detect another page, returns at most `pageSize` items,
+and supplies `nextCursor` when another page exists. Cursors are valid only with
+the same filters, search, and sorting that created them.
 
 For example:
 
 ```text
-/api/tasks?filter[status]=New&filter[category]=Outdoor&sortBy=createdAt&sortDirection=desc
+/api/tasks?filter[status]=New&filter[category]=Outdoor&sortBy=createdAt&sortDirection=desc&pageSize=25
 ```
 
 ```json
-[
-  {
-    "title": "Skifte lyskilder til LED i garasje",
-    "description": "Midlertidig løsning på plass. Permanent utbedring gjenstår.",
-    "category": "Electrical",
-    "status": "InProgress",
-    "propertyName": "Torvhaugen Næringsbygg",
-    "createdAt": "2025-12-25",
-    "dueDate": "2026-03-01",
-    "costNok": 8100
-  }
-]
+{
+  "items": [
+    {
+      "title": "Skifte lyskilder til LED i garasje",
+      "description": "Midlertidig løsning på plass. Permanent utbedring gjenstår.",
+      "category": "Electrical",
+      "status": "InProgress",
+      "propertyName": "Torvhaugen Næringsbygg",
+      "createdAt": "2025-12-25",
+      "dueDate": "2026-03-01",
+      "costNok": 8100
+    }
+  ],
+  "nextCursor": "eyJ2ZXJzaW9uIjoxLC4uLn0"
+}
 ```
 
 CORS is wide open (all origins), which covers the Vite dev server. There is no auth.
@@ -116,17 +124,18 @@ into `properties.id`, and the task row holds no property name of its own.
 
 ### `tasks`
 
-| Column        | Type    | Null    | Notes                                                  |
-| ------------- | ------- | ------- | ------------------------------------------------------ |
-| `id`          | TEXT    | no      | primary key                                            |
-| `title`       | TEXT    | no      | Norwegian free text                                    |
-| `description` | TEXT    | no      | Norwegian free text, mostly short, some 400–800 chars  |
-| `category`    | TEXT    | no      | enum, CHECK constraint                                 |
-| `status`      | TEXT    | no      | enum, CHECK constraint                                 |
-| `property_id` | TEXT    | no      | foreign key into `properties.id`, unevenly distributed |
-| `created_at`  | TEXT    | no      | ISO 8601 date, spread across 2022–2026                 |
-| `due_date`    | TEXT    | **yes** | ISO 8601 date, null in ~19 % of rows                   |
-| `cost_nok`    | INTEGER | **yes** | 300 – ~470 000, null in ~12 % of rows                  |
+| Column           | Type    | Null    | Notes                                                  |
+| ---------------- | ------- | ------- | ------------------------------------------------------ |
+| `id`             | TEXT    | no      | primary key                                            |
+| `title`          | TEXT    | no      | Norwegian free text                                    |
+| `description`    | TEXT    | no      | Norwegian free text, mostly short, some 400–800 chars  |
+| `category`       | TEXT    | no      | enum, CHECK constraint                                 |
+| `status`         | TEXT    | no      | enum, CHECK constraint                                 |
+| `pagination_key` | TEXT    | no      | unique public key used only inside pagination cursors  |
+| `property_id`    | TEXT    | no      | foreign key into `properties.id`, unevenly distributed |
+| `created_at`     | TEXT    | no      | ISO 8601 date, spread across 2022–2026                 |
+| `due_date`       | TEXT    | **yes** | ISO 8601 date, null in ~19 % of rows                   |
+| `cost_nok`       | INTEGER | **yes** | 300 – ~470 000, null in ~12 % of rows                  |
 
 ### Seed data
 

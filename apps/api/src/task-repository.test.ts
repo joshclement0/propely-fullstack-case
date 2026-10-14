@@ -56,29 +56,31 @@ void test('returns typed internal task records with resolved property names', (c
     ['Repair roof', 'Clean lobby', 'Inspect roof'],
   );
 
+  const filteredTasks = listTasks({
+    filter: {
+      status: 'Rejected',
+      category: 'Outdoor',
+      property_name: 'Åkerveien 3',
+    },
+    search: 'inspect',
+  });
+  const filteredTask = filteredTasks[0];
+  assert.ok(filteredTask);
   assert.deepEqual(
-    listTasks({
-      filter: {
-        status: 'Rejected',
-        category: 'Outdoor',
-        property_name: 'Åkerveien 3',
-      },
-      search: 'inspect',
-    }),
-    [
-      {
-        id: 'task-001',
-        title: 'Inspect roof',
-        description: 'Annual inspection',
-        category: 'Outdoor',
-        status: 'Rejected',
-        property_id: 'prop-001',
-        property_name: 'Åkerveien 3',
-        created_at: '2026-01-01',
-        due_date: null,
-        cost_nok: null,
-      },
-    ],
+    { ...filteredTask, pagination_key: '<public-key>' },
+    {
+      id: 'task-001',
+      title: 'Inspect roof',
+      description: 'Annual inspection',
+      category: 'Outdoor',
+      status: 'Rejected',
+      pagination_key: '<public-key>',
+      property_id: 'prop-001',
+      property_name: 'Åkerveien 3',
+      created_at: '2026-01-01',
+      due_date: null,
+      cost_nok: null,
+    },
   );
 
   assert.deepEqual(
@@ -90,4 +92,47 @@ void test('returns typed internal task records with resolved property names', (c
     ['Clean lobby', 'Repair roof'],
   );
   assert.deepEqual(listTasks({ search: '%' }), []);
+
+  const firstPage = listTasks({ sortBy: 'title', sortDirection: 'asc', pageSize: 1 });
+  assert.deepEqual(
+    firstPage.map((task) => task.title),
+    ['Clean lobby', 'Inspect roof'],
+  );
+  const firstTask = firstPage[0];
+  assert.ok(firstTask);
+  assert.deepEqual(
+    listTasks({
+      sortBy: 'title',
+      sortDirection: 'asc',
+      pageSize: 1,
+      after: {
+        sortBy: 'title',
+        sortDirection: 'asc',
+        value: firstTask.title,
+        created_at: firstTask.created_at,
+        pagination_key: firstTask.pagination_key,
+      },
+    }).map((task) => task.title),
+    ['Inspect roof', 'Repair roof'],
+  );
+
+  const nullDatePage = listTasks({ sortBy: 'dueDate', sortDirection: 'asc', pageSize: 1 });
+  const nullDateTask = nullDatePage[0];
+  assert.ok(nullDateTask);
+  assert.equal(nullDateTask.due_date, null);
+  assert.deepEqual(
+    listTasks({
+      sortBy: 'dueDate',
+      sortDirection: 'asc',
+      pageSize: 1,
+      after: {
+        sortBy: 'dueDate',
+        sortDirection: 'asc',
+        value: null,
+        created_at: nullDateTask.created_at,
+        pagination_key: nullDateTask.pagination_key,
+      },
+    }).map((task) => task.title),
+    ['Clean lobby', 'Repair roof'],
+  );
 });

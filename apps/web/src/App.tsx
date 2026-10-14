@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import type { PublicTask } from '@propely-case/contracts';
 
-import { fetchTasks } from './api';
+import { fetchTaskPage } from './api';
 import { TaskTable } from './TaskTable';
 
 export function App() {
@@ -10,8 +10,8 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void fetchTasks()
-      .then(setTasks)
+    void fetchTaskPage()
+      .then((page) => setTasks(page.items))
       .catch((requestError: unknown) => {
         setError(requestError instanceof Error ? requestError.message : 'Ukjent feil');
       });

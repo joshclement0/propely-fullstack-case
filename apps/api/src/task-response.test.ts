@@ -10,6 +10,7 @@ void test('formats an internal task record without exposing storage identifiers'
       description: 'Annual inspection',
       category: 'Outdoor',
       status: 'Rejected',
+      pagination_key: 'public-page-key',
       property_id: 'prop-001',
       property_name: 'Åkerveien 3',
       created_at: '2026-01-01',

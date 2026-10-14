@@ -13,6 +13,8 @@ void test('parses composable task filters and sorting', () => {
       search: ' roof ',
       sortBy: 'title',
       sortDirection: 'asc',
+      cursor: 'next-page-token',
+      pageSize: '10',
     }),
     {
       filter: {
@@ -23,6 +25,8 @@ void test('parses composable task filters and sorting', () => {
       search: 'roof',
       sortBy: 'title',
       sortDirection: 'asc',
+      cursor: 'next-page-token',
+      pageSize: 10,
     },
   );
 });
@@ -31,6 +35,7 @@ void test('applies deterministic default sorting', () => {
   assert.deepEqual(parseTaskListQuery({}), {
     sortBy: 'createdAt',
     sortDirection: 'desc',
+    pageSize: 25,
   });
 });
 
@@ -39,11 +44,13 @@ void test('accepts missing and partially populated filter objects', () => {
     filter: {},
     sortBy: 'createdAt',
     sortDirection: 'desc',
+    pageSize: 25,
   });
   assert.deepEqual(parseTaskListQuery({ filter: { status: 'Completed' } }), {
     filter: { status: 'Completed' },
     sortBy: 'createdAt',
     sortDirection: 'desc',
+    pageSize: 25,
   });
 });
 
@@ -53,6 +60,10 @@ void test('rejects unsupported or malformed query parameters', () => {
     { filter: { property_id: 'prop-001' } },
     { sortBy: 'id' },
     { sortDirection: 'sideways' },
+    { cursor: '' },
+    { cursor: ['one', 'two'] },
+    { pageSize: 0 },
+    { pageSize: 101 },
     { filter: { status: ['New', 'Completed'] } },
     { unknown: 'value' },
   ]) {

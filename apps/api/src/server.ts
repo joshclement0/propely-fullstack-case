@@ -1,6 +1,8 @@
+import { DEFAULT_TASK_PAGE_SIZE, type PublicTaskPage } from '@propely-case/contracts';
 import cors from 'cors';
 import express from 'express';
 import { databaseNeedsSeed, DB_PATH, loadSeedData } from './db.js';
+import { createTaskCursor, parseTaskCursor, TaskCursorValidationError } from './task-cursor.js';
 import { parseTaskListQuery, TaskListQueryValidationError } from './task-query.js';
 import { toPublicTask } from './task-response.js';
 import { initializeTasks, listTasks } from './task-service.js';
@@ -29,10 +31,28 @@ app.get('/api/health', (_req, res) => {
 app.get('/api/tasks', (req, res) => {
   try {
     const query = parseTaskListQuery(req.query);
-    const tasks = listTasks(query);
-    res.json(tasks.map(toPublicTask));
+    const pageSize = query.pageSize ?? DEFAULT_TASK_PAGE_SIZE;
+    const after = query.cursor ? parseTaskCursor(query.cursor, query) : undefined;
+    const tasks = listTasks({
+      filter: query.filter,
+      search: query.search,
+      sortBy: query.sortBy,
+      sortDirection: query.sortDirection,
+      pageSize,
+      after,
+    });
+    const pageTasks = tasks.slice(0, pageSize);
+    const lastTask = pageTasks.at(-1);
+    const response: PublicTaskPage = {
+      items: pageTasks.map(toPublicTask),
+      nextCursor: tasks.length > pageSize && lastTask ? createTaskCursor(lastTask, query) : null,
+    };
+    res.json(response);
   } catch (error) {
-    if (error instanceof TaskListQueryValidationError) {
+    if (
+      error instanceof TaskListQueryValidationError ||
+      error instanceof TaskCursorValidationError
+    ) {
       res.status(400).json({ error: error.message });
       return;
     }

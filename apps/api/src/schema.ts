@@ -12,6 +12,7 @@ export const tasks = sqliteTable('tasks', {
   description: text('description').notNull(),
   category: text('category', { enum: TASK_CATEGORIES }).notNull(),
   status: text('status', { enum: TASK_STATUSES }).notNull(),
+  pagination_key: text('pagination_key').notNull().unique(),
   property_id: text('property_id')
     .notNull()
     .references(() => properties.id),

@@ -25,6 +25,9 @@ export type TaskSortField = (typeof TASK_SORT_FIELDS)[number];
 export const TASK_SORT_DIRECTIONS = ['asc', 'desc'] as const;
 export type TaskSortDirection = (typeof TASK_SORT_DIRECTIONS)[number];
 
+export const DEFAULT_TASK_PAGE_SIZE = 25;
+export const MAX_TASK_PAGE_SIZE = 100;
+
 /** Allowlisted database projection fields accepted by GET /api/tasks. */
 export interface TaskFilters {
   status?: TaskStatus;
@@ -38,6 +41,10 @@ export interface TaskListQuery {
   search?: string;
   sortBy?: TaskSortField;
   sortDirection?: TaskSortDirection;
+  /** Opaque position returned by the previous page. */
+  cursor?: string;
+  /** Number of requested tasks, excluding the possible lookahead task. */
+  pageSize?: number;
 }
 
 /** Public task data. Storage identifiers must never be added to this contract. */
@@ -50,6 +57,11 @@ export interface PublicTask {
   createdAt: string;
   dueDate: string | null;
   costNok: number | null;
+}
+
+export interface PublicTaskPage {
+  items: PublicTask[];
+  nextCursor: string | null;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -83,4 +95,12 @@ export function isPublicTask(value: unknown): value is PublicTask {
 
 export function isPublicTaskList(value: unknown): value is PublicTask[] {
   return Array.isArray(value) && value.every(isPublicTask);
+}
+
+export function isPublicTaskPage(value: unknown): value is PublicTaskPage {
+  return (
+    isRecord(value) &&
+    isPublicTaskList(value.items) &&
+    (typeof value.nextCursor === 'string' || value.nextCursor === null)
+  );
 }

@@ -1,4 +1,6 @@
 import {
+  DEFAULT_TASK_PAGE_SIZE,
+  MAX_TASK_PAGE_SIZE,
   TASK_CATEGORIES,
   TASK_SORT_DIRECTIONS,
   TASK_SORT_FIELDS,
@@ -23,6 +25,8 @@ const taskListQuerySchema = Joi.object<TaskListQuery>({
   sortDirection: Joi.string()
     .valid(...TASK_SORT_DIRECTIONS)
     .default('desc'),
+  cursor: Joi.string().trim().min(1).max(2048).optional(),
+  pageSize: Joi.number().integer().min(1).max(MAX_TASK_PAGE_SIZE).default(DEFAULT_TASK_PAGE_SIZE),
 }).unknown(false);
 
 export class TaskListQueryValidationError extends Error {}
