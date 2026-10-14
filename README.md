@@ -10,8 +10,37 @@ requirements at the bottom).
 
 ## Getting started
 
-Requires **Node 22 or newer**. Any way of installing it works, and nvm is not required.
-If you do use nvm, `.nvmrc` pins the version for you:
+The recommended development setup requires Docker Desktop. Start the API and web app together:
+
+```bash
+npm run dev:docker
+```
+
+Docker Compose builds separate Node 22 browser and server images from
+`apps/web/Dockerfile` and `apps/api/Dockerfile`, using workspace-focused dependencies. It
+initializes SQLite in a named volume and starts both apps with hot reload. The two containers use
+separate `node_modules` volumes. Stop the stack with:
+
+```bash
+npm run dev:docker:down
+```
+
+| App                | URL                                            | Notes                                   |
+| ------------------ | ---------------------------------------------- | --------------------------------------- |
+| API (Express)      | [http://localhost:8080](http://localhost:8080) | SQLite data persists in a Docker volume |
+| Web (Vite + React) | [http://localhost:3000](http://localhost:3000) | Calls the API through port `8080`       |
+
+The API writes one structured timing entry for every completed or aborted request. Follow the
+request timings with:
+
+```bash
+docker compose logs --follow api
+```
+
+### Run without Docker
+
+Local development requires **Node 22 or newer**. Any way of installing it works, and nvm is not
+required. If you do use nvm, `.nvmrc` pins the version for you:
 
 ```bash
 nvm use            # optional, picks up Node 22 from .nvmrc
@@ -24,11 +53,6 @@ Then start the two apps in **two separate terminals**:
 npm run dev:api    # terminal 1
 npm run dev:web    # terminal 2
 ```
-
-| App                | URL                                            | Notes                                          |
-| ------------------ | ---------------------------------------------- | ---------------------------------------------- |
-| API (Express)      | [http://localhost:8080](http://localhost:8080) | run with `tsx`, no build step in dev           |
-| Web (Vite + React) | [http://localhost:3000](http://localhost:3000) | proxies nothing; calls the API by absolute URL |
 
 On first start the API creates `apps/api/tasks.db` from `seed/tasks.json` and
 `seed/properties.json`. The db file is gitignored and rebuilt from the seed, so you can

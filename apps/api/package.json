@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
-    "test": "tsx --test src/db.test.ts src/seed-contract.test.ts src/task-cursor.test.ts src/task-query.test.ts src/task-repository.test.ts src/task-response.test.ts src/task-service.test.ts",
+    "test": "tsx --test src/db.test.ts src/request-timing.test.ts src/seed-contract.test.ts src/task-cursor.test.ts src/task-query.test.ts src/task-repository.test.ts src/task-response.test.ts src/task-service.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

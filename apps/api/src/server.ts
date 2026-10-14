@@ -6,6 +6,7 @@ import { createTaskCursor, parseTaskCursor, TaskCursorValidationError } from './
 import { parseTaskListQuery, TaskListQueryValidationError } from './task-query.js';
 import { toPublicTask } from './task-response.js';
 import { initializeTasks, listTasks } from './task-service.js';
+import { createRequestTimingMiddleware } from './request-timing.js';
 
 const PORT = Number(process.env.PORT ?? 8080);
 
@@ -22,6 +23,7 @@ if (needsSeed) {
 const app = express();
 
 app.set('query parser', 'extended');
+app.use(createRequestTimingMiddleware());
 app.use(cors());
 
 app.get('/api/health', (_req, res) => {
