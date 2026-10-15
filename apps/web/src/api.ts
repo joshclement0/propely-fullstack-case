@@ -5,8 +5,10 @@ const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? 'http://localhost:808
 export function createTaskPageUrl(query: TaskListQuery): URL {
   const url = new URL(`${API_BASE_URL}/api/tasks`);
 
-  if (query.filter?.status) url.searchParams.set('filter[status]', query.filter.status);
-  if (query.filter?.category) url.searchParams.set('filter[category]', query.filter.category);
+  query.filter?.status?.forEach((status) => url.searchParams.append('filter[status]', status));
+  query.filter?.category?.forEach((category) =>
+    url.searchParams.append('filter[category]', category),
+  );
   if (query.filter?.property_name) {
     url.searchParams.set('filter[property_name]', query.filter.property_name);
   }

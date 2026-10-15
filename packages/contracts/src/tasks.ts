@@ -30,8 +30,8 @@ export const MAX_TASK_PAGE_SIZE = 100;
 
 /** Allowlisted database projection fields accepted by GET /api/tasks. */
 export interface TaskFilters {
-  status?: TaskStatus;
-  category?: TaskCategory;
+  status?: TaskStatus[];
+  category?: TaskCategory[];
   property_name?: string;
 }
 

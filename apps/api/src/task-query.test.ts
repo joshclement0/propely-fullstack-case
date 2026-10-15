@@ -6,8 +6,8 @@ void test('parses composable task filters and sorting', () => {
   assert.deepEqual(
     parseTaskListQuery({
       filter: {
-        status: 'New',
-        category: 'Outdoor',
+        status: ['New', 'Completed'],
+        category: ['Outdoor', 'Cleaning'],
         property_name: ' Åkerveien 3 ',
       },
       search: ' roof ',
@@ -18,8 +18,8 @@ void test('parses composable task filters and sorting', () => {
     }),
     {
       filter: {
-        status: 'New',
-        category: 'Outdoor',
+        status: ['New', 'Completed'],
+        category: ['Outdoor', 'Cleaning'],
         property_name: 'Åkerveien 3',
       },
       search: 'roof',
@@ -47,7 +47,7 @@ void test('accepts missing and partially populated filter objects', () => {
     pageSize: 25,
   });
   assert.deepEqual(parseTaskListQuery({ filter: { status: 'Completed' } }), {
-    filter: { status: 'Completed' },
+    filter: { status: ['Completed'] },
     sortBy: 'createdAt',
     sortDirection: 'desc',
     pageSize: 25,
@@ -64,7 +64,7 @@ void test('strips unsupported query parameters at every object boundary', () => 
       unknown: 'value',
     }),
     {
-      filter: { status: 'New' },
+      filter: { status: ['New'] },
       sortBy: 'createdAt',
       sortDirection: 'desc',
       pageSize: 25,
@@ -81,7 +81,8 @@ void test('rejects malformed values for supported query parameters', () => {
     { cursor: ['one', 'two'] },
     { pageSize: 0 },
     { pageSize: 101 },
-    { filter: { status: ['New', 'Completed'] } },
+    { filter: { category: [] } },
+    { filter: { status: ['New', 'New'] } },
   ]) {
     assert.throws(() => parseTaskListQuery(query), TaskListQueryValidationError);
   }

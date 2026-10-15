@@ -41,8 +41,8 @@ function isCursorValue(sortBy: TaskSortField, value: unknown): value is string |
 
 function queryFingerprint(query: TaskListQuery): string {
   const normalizedQuery = {
-    status: query.filter?.status ?? null,
-    category: query.filter?.category ?? null,
+    status: query.filter?.status ? [...query.filter.status].sort() : null,
+    category: query.filter?.category ? [...query.filter.category].sort() : null,
     property_name: query.filter?.property_name ?? null,
     search: query.search ?? null,
     sortBy: query.sortBy ?? 'createdAt',

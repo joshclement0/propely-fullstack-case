@@ -66,8 +66,8 @@ void test('returns typed internal task records with resolved property names', (c
   const filteredTasks = listTasks({
     ...defaultQuery,
     filter: {
-      status: 'Rejected',
-      category: 'Outdoor',
+      status: ['Rejected'],
+      category: ['Outdoor'],
       property_name: 'Åkerveien 3',
     },
     search: 'inspect',
@@ -94,11 +94,20 @@ void test('returns typed internal task records with resolved property names', (c
   assert.deepEqual(
     listTasks({
       ...defaultQuery,
-      filter: { status: 'New' },
+      filter: { status: ['New'] },
       sortField: 'title',
       sortDirection: 'asc',
     }).map((task) => task.title),
     ['Clean lobby', 'Repair roof'],
+  );
+  assert.deepEqual(
+    listTasks({
+      ...defaultQuery,
+      filter: { status: ['New', 'Rejected'] },
+      sortField: 'title',
+      sortDirection: 'asc',
+    }).map((task) => task.title),
+    ['Clean lobby', 'Inspect roof', 'Repair roof'],
   );
   assert.deepEqual(listTasks({ ...defaultQuery, search: '%' }), []);
 

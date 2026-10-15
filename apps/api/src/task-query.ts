@@ -11,8 +11,18 @@ import {
 import Joi from 'joi';
 
 const taskFiltersSchema = Joi.object<TaskFilters>({
-  status: Joi.string().valid(...TASK_STATUSES),
-  category: Joi.string().valid(...TASK_CATEGORIES),
+  status: Joi.array()
+    .items(Joi.string().valid(...TASK_STATUSES))
+    .single()
+    .min(1)
+    .unique()
+    .max(TASK_STATUSES.length),
+  category: Joi.array()
+    .items(Joi.string().valid(...TASK_CATEGORIES))
+    .single()
+    .min(1)
+    .unique()
+    .max(TASK_CATEGORIES.length),
   property_name: Joi.string().trim().min(1).max(200),
 });
 

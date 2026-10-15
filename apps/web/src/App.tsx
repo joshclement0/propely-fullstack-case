@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   TASK_CATEGORIES,
@@ -14,33 +14,34 @@ import { TaskTable } from './TaskTable';
 import {
   DEFAULT_TASK_VIEW_QUERY,
   PAGE_SIZES,
-  parseCategory,
   parsePageSize,
-  parseStatus,
   parseTaskViewQuery,
   serializeTaskViewQuery,
   type TaskViewQuery,
 } from './task-view-query';
-
-const STATUS_OPTIONS: readonly SelectOption[] = [
-  { value: '', label: 'Alle statuser' },
-  ...TASK_STATUSES.map((status) => ({ value: status, label: status })),
-];
-
-const CATEGORY_OPTIONS: readonly SelectOption[] = [
-  { value: '', label: 'Alle kategorier' },
-  ...TASK_CATEGORIES.map((category) => ({ value: category, label: category })),
-];
+import { TASK_FIELDS, TASK_FIELD_LABELS, type TaskField } from './task-fields';
 
 const PAGE_SIZE_OPTIONS: readonly SelectOption[] = PAGE_SIZES.map((size) => ({
   value: String(size),
   label: String(size),
 }));
 
-const toApiQuery = (query: TaskViewQuery): TaskListQuery => ({
+type TaskApiViewQuery = Pick<
+  TaskViewQuery,
+  | 'statuses'
+  | 'categories'
+  | 'propertyName'
+  | 'search'
+  | 'sortBy'
+  | 'sortDirection'
+  | 'pageSize'
+  | 'cursor'
+>;
+
+const toApiQuery = (query: TaskApiViewQuery): TaskListQuery => ({
   filter: {
-    ...(query.status ? { status: query.status } : {}),
-    ...(query.category ? { category: query.category } : {}),
+    ...(query.statuses.length ? { status: query.statuses } : {}),
+    ...(query.categories.length ? { category: query.categories } : {}),
     ...(query.propertyName.trim() ? { property_name: query.propertyName.trim() } : {}),
   },
   ...(query.search.trim() ? { search: query.search.trim() } : {}),
@@ -49,6 +50,42 @@ const toApiQuery = (query: TaskViewQuery): TaskListQuery => ({
   pageSize: query.pageSize,
   ...(query.cursor ? { cursor: query.cursor } : {}),
 });
+
+interface CheckboxGroupProps<T extends string> {
+  legend: string;
+  options: readonly T[];
+  selected: readonly T[];
+  onToggle: (value: T) => void;
+}
+
+function CheckboxGroup<T extends string>({
+  legend,
+  options,
+  selected,
+  onToggle,
+}: CheckboxGroupProps<T>) {
+  return (
+    <fieldset>
+      <legend className="mb-1 block text-sm font-medium text-slate-700">{legend}</legend>
+      <div className="flex min-h-10 flex-wrap gap-x-3 gap-y-1 rounded-md border border-slate-300 bg-white px-3 py-2">
+        {options.map((option) => (
+          <label
+            key={option}
+            className="flex cursor-pointer items-center gap-1.5 text-sm text-slate-700"
+          >
+            <input
+              type="checkbox"
+              checked={selected.includes(option)}
+              onChange={() => onToggle(option)}
+              className="rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+            />
+            {option}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
 
 type HistoryMode = 'push' | 'replace';
 
@@ -71,6 +108,31 @@ export function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [previousCursors, setPreviousCursors] = useState<string[]>([]);
+  const [requestAttempt, setRequestAttempt] = useState(0);
+  const apiQuery = useMemo(
+    () =>
+      toApiQuery({
+        statuses: query.statuses,
+        categories: query.categories,
+        propertyName: query.propertyName,
+        search: query.search,
+        sortBy: query.sortBy,
+        sortDirection: query.sortDirection,
+        pageSize: query.pageSize,
+        cursor: query.cursor,
+      }),
+    [
+      query.statuses,
+      query.categories,
+      query.propertyName,
+      query.search,
+      query.sortBy,
+      query.sortDirection,
+      query.pageSize,
+      query.cursor,
+    ],
+  );
+  const visibleFields = TASK_FIELDS.filter((field) => !query.hiddenFields.includes(field));
 
   useEffect(() => {
     writeTaskViewQuery(query, 'replace');
@@ -90,7 +152,7 @@ export function App() {
   useEffect(() => {
     const controller = new AbortController();
 
-    void fetchTaskPage(toApiQuery(query), controller.signal)
+    void fetchTaskPage(apiQuery, controller.signal)
       .then((result) => {
         setPage(result);
         setError(null);
@@ -104,7 +166,7 @@ export function App() {
       });
 
     return () => controller.abort();
-  }, [query]);
+  }, [apiQuery, requestAttempt]);
 
   const updateQuery = (updates: Partial<TaskViewQuery>, historyMode: HistoryMode = 'push') => {
     const nextQuery = { ...query, ...updates, cursor: '', page: 1 };
@@ -119,6 +181,36 @@ export function App() {
       sortBy: field,
       sortDirection: query.sortBy === field && query.sortDirection === 'asc' ? 'desc' : 'asc',
     });
+  };
+
+  const toggleStatus = (status: (typeof TASK_STATUSES)[number]) => {
+    updateQuery({
+      statuses: query.statuses.includes(status)
+        ? query.statuses.filter((value) => value !== status)
+        : [...query.statuses, status],
+    });
+  };
+
+  const toggleCategory = (category: (typeof TASK_CATEGORIES)[number]) => {
+    updateQuery({
+      categories: query.categories.includes(category)
+        ? query.categories.filter((value) => value !== category)
+        : [...query.categories, category],
+    });
+  };
+
+  const toggleField = (field: TaskField) => {
+    const isHidden = query.hiddenFields.includes(field);
+    if (!isHidden && visibleFields.length === 1) return;
+
+    const nextQuery = {
+      ...query,
+      hiddenFields: isHidden
+        ? query.hiddenFields.filter((value) => value !== field)
+        : [...query.hiddenFields, field],
+    };
+    setQuery(nextQuery);
+    writeTaskViewQuery(nextQuery, 'push');
   };
 
   const goNext = () => {
@@ -151,7 +243,7 @@ export function App() {
 
   const retry = () => {
     setIsLoading(true);
-    setQuery((current) => ({ ...current }));
+    setRequestAttempt((attempt) => attempt + 1);
   };
 
   const clearFilters = () => updateQuery(DEFAULT_TASK_VIEW_QUERY);
@@ -163,7 +255,13 @@ export function App() {
     setDownloadError(null);
     try {
       const { downloadTasksPdf } = await import('./pdf');
-      downloadTasksPdf(page.items);
+      const activeFilters = [
+        query.search.trim() ? `Søk: ${query.search.trim()}` : '',
+        query.statuses.length ? `Status: ${query.statuses.join(', ')}` : '',
+        query.categories.length ? `Kategori: ${query.categories.join(', ')}` : '',
+        query.propertyName.trim() ? `Eiendom: ${query.propertyName.trim()}` : '',
+      ].filter(Boolean);
+      downloadTasksPdf(page.items, { visibleFields, activeFilters });
     } catch (downloadFailure: unknown) {
       setDownloadError(downloadFailure instanceof Error ? downloadFailure.message : 'Ukjent feil');
     } finally {
@@ -185,7 +283,7 @@ export function App() {
           aria-label="Filtrer oppgaver"
           className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
         >
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
             <Input
               title="Søk i tittel eller eiendom"
               type="search"
@@ -195,18 +293,18 @@ export function App() {
               containerClassName="xl:col-span-2"
             />
 
-            <Select
-              title="Status"
-              value={query.status}
-              options={STATUS_OPTIONS}
-              onChange={(event) => updateQuery({ status: parseStatus(event.target.value) })}
+            <CheckboxGroup
+              legend="Status"
+              options={TASK_STATUSES}
+              selected={query.statuses}
+              onToggle={toggleStatus}
             />
 
-            <Select
-              title="Kategori"
-              value={query.category}
-              options={CATEGORY_OPTIONS}
-              onChange={(event) => updateQuery({ category: parseCategory(event.target.value) })}
+            <CheckboxGroup
+              legend="Kategori"
+              options={TASK_CATEGORIES}
+              selected={query.categories}
+              onToggle={toggleCategory}
             />
 
             <Input
@@ -215,16 +313,44 @@ export function App() {
               value={query.propertyName}
               onChange={(event) => updateQuery({ propertyName: event.target.value }, 'replace')}
               placeholder="F.eks. Åkerveien 3"
+              containerClassName="xl:col-span-2"
             />
           </div>
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <Button
-              title={isDownloading ? 'Lager PDF …' : 'Last ned som PDF'}
-              variant="primary"
-              disabled={!page?.items.length || isLoading || isDownloading}
-              onClick={() => void downloadPdf()}
-            />
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                title={isDownloading ? 'Lager PDF …' : 'Last ned som PDF'}
+                variant="primary"
+                disabled={!page?.items.length || isLoading || isDownloading}
+                onClick={() => void downloadPdf()}
+              />
+              <details className="relative">
+                <summary className="cursor-pointer rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                  Vis felt ({visibleFields.length}/{TASK_FIELDS.length})
+                </summary>
+                <fieldset className="absolute left-0 z-20 mt-2 min-w-48 rounded-md border border-slate-200 bg-white p-3 shadow-lg">
+                  <legend className="sr-only">Velg synlige felt</legend>
+                  {TASK_FIELDS.map((field) => {
+                    const isVisible = visibleFields.includes(field);
+                    return (
+                      <label
+                        key={field}
+                        className="flex items-center gap-2 py-1 text-sm text-slate-700"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isVisible}
+                          disabled={isVisible && visibleFields.length === 1}
+                          onChange={() => toggleField(field)}
+                        />
+                        {TASK_FIELD_LABELS[field]}
+                      </label>
+                    );
+                  })}
+                </fieldset>
+              </details>
+            </div>
             <Button title="Nullstill" variant="ghost" onClick={clearFilters} />
           </div>
         </section>
@@ -272,6 +398,7 @@ export function App() {
               tasks={page.items}
               sortBy={query.sortBy}
               sortDirection={query.sortDirection}
+              visibleFields={visibleFields}
               onSort={changeSort}
             />
           )}

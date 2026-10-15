@@ -3,6 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import { databaseNeedsSeed, DB_PATH } from './db/index.js';
 import { loadSeedData, seedDatabase } from './db/seed.js';
+import { writeRequestErrorLog } from './request-error-log.js';
 import { TaskCursorValidationError } from './task-cursor.js';
 import { parseTaskListQuery, TaskListQueryValidationError } from './task-query.js';
 import { listTasks } from './task-service.js';
@@ -41,15 +42,22 @@ app.get('/api/tasks', (req, res) => {
 
     res.json(response);
   } catch (error) {
-    if (
-      error instanceof TaskListQueryValidationError ||
-      error instanceof TaskCursorValidationError
-    ) {
+    const isClientError =
+      error instanceof TaskListQueryValidationError || error instanceof TaskCursorValidationError;
+    const statusCode = isClientError ? 400 : 500;
+
+    writeRequestErrorLog({
+      error,
+      method: req.method,
+      path: req.path,
+      statusCode,
+    });
+
+    if (isClientError) {
       res.status(400).json({ error: error.message });
       return;
     }
 
-    console.error('Failed to list tasks.', error);
     res.status(500).json({ error: 'Could not load tasks.' });
   }
 });

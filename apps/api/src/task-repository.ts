@@ -1,4 +1,14 @@
-import { and, asc, desc, eq, sql, type AnyColumn, type SQL, type SQLWrapper } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  sql,
+  type AnyColumn,
+  type SQL,
+  type SQLWrapper,
+} from 'drizzle-orm';
 import { getOrm } from './db/index.js';
 import { properties, tasks, type TaskRecord } from './db/schema.js';
 
@@ -8,8 +18,8 @@ export type TaskRepositorySortField =
 export type TaskRepositorySortDirection = 'asc' | 'desc';
 
 export interface TaskRepositoryFilters {
-  status?: TaskRecord['status'];
-  category?: TaskRecord['category'];
+  status?: TaskRecord['status'][];
+  category?: TaskRecord['category'][];
   property_name?: TaskRecord['property_name'];
 }
 
@@ -94,7 +104,11 @@ export function listTasks(query: TaskRepositoryQuery): TaskRecord[] {
       if (isTaskFilterName(filterName)) {
         const value = query.filter[filterName];
         if (value !== undefined) {
-          conditions.push(eq(FILTER_COLUMNS[filterName], value));
+          conditions.push(
+            Array.isArray(value)
+              ? inArray(FILTER_COLUMNS[filterName], value)
+              : eq(FILTER_COLUMNS[filterName], value),
+          );
         }
       }
     }

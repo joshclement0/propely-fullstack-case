@@ -15,11 +15,14 @@ The recommended development setup requires Docker Desktop. Start the API and web
 ```bash
 npm run dev:docker
 ```
+
 or if docker compose is installed
+
 ```bash
 docker compose up
 ```
-optional flags --build, --force-recreate and -d are also recommended 
+
+optional flags --build, --force-recreate and -d are also recommended
 
 Docker Compose builds separate Node 22 browser and server images from
 `apps/web/Dockerfile` and `apps/api/Dockerfile`, using workspace-focused dependencies. It
@@ -29,10 +32,13 @@ separate `node_modules` volumes. Stop the stack with:
 ```bash
 npm run dev:docker:down
 ```
+
 or if docker compose is installed
+
 ```bash
 docker compose down
 ```
+
 optional flags -v to destroy all volumes
 
 | App                | URL                                            | Notes                                   |
@@ -100,16 +106,16 @@ Returns matching tasks in a paginated response object. All query parameters are
 optional and can be combined. Filters use bracket notation to form one `filter`
 object whose keys match the repository's database projection:
 
-| Parameter               | Accepted values                                                                  | Default     |
-| ----------------------- | -------------------------------------------------------------------------------- | ----------- |
-| `filter[status]`        | `New`, `InProgress`, `Completed`, `Rejected`                                     | all         |
-| `filter[category]`      | `FireSafety`, `Plumbing`, `Electrical`, `Ventilation`, `Cleaning`, `Outdoor`     | all         |
-| `filter[property_name]` | Exact property name                                                              | all         |
-| `search`                | Text contained in the task title or property name                                | none        |
-| `sortBy`                | `title`, `category`, `status`, `propertyName`, `createdAt`, `dueDate`, `costNok` | `createdAt` |
-| `sortDirection`         | `asc`, `desc`                                                                    | `desc`      |
-| `cursor`                | Opaque cursor returned by the previous page                                      | none        |
-| `pageSize`              | Integer from `1` to `100`                                                        | `25`        |
+| Parameter               | Accepted values                                                                             | Default     |
+| ----------------------- | ------------------------------------------------------------------------------------------- | ----------- |
+| `filter[status]`        | One or more of `New`, `InProgress`, `Completed`, `Rejected`                                 | all         |
+| `filter[category]`      | One or more of `FireSafety`, `Plumbing`, `Electrical`, `Ventilation`, `Cleaning`, `Outdoor` | all         |
+| `filter[property_name]` | Exact property name                                                                         | all         |
+| `search`                | Text contained in the task title or property name                                           | none        |
+| `sortBy`                | `title`, `category`, `status`, `propertyName`, `createdAt`, `dueDate`, `costNok`            | `createdAt` |
+| `sortDirection`         | `asc`, `desc`                                                                               | `desc`      |
+| `cursor`                | Opaque cursor returned by the previous page                                                 | none        |
+| `pageSize`              | Integer from `1` to `100`                                                                   | `25`        |
 
 Unsupported parameters are stripped at the HTTP validation boundary, while invalid
 values for supported parameters return `400`. Sorting is deterministic, and internal
@@ -121,7 +127,7 @@ the same filters, search, and sorting that created them.
 For example:
 
 ```text
-/api/tasks?filter[status]=New&filter[category]=Outdoor&sortBy=createdAt&sortDirection=desc&pageSize=25
+/api/tasks?filter[status]=New&filter[status]=InProgress&filter[category]=Outdoor&sortBy=createdAt&sortDirection=desc&pageSize=25
 ```
 
 ```json

@@ -36,9 +36,9 @@ void test('round-trips an opaque cursor for the active query', () => {
 void test('rejects malformed cursors and cursors from a different query', () => {
   assert.throws(() => parseTaskCursor('not-json', {}), TaskCursorValidationError);
 
-  const cursor = createTaskCursor(task, { filter: { status: 'Rejected' } });
+  const cursor = createTaskCursor(task, { filter: { status: ['Rejected'] } });
   assert.throws(
-    () => parseTaskCursor(cursor, { filter: { status: 'New' } }),
+    () => parseTaskCursor(cursor, { filter: { status: ['New'] } }),
     TaskCursorValidationError,
   );
 });

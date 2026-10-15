@@ -6,8 +6,8 @@ import { createTaskPageUrl } from './api';
 void test('createTaskPageUrl serializes combined task query state', () => {
   const url = createTaskPageUrl({
     filter: {
-      status: 'InProgress',
-      category: 'Outdoor',
+      status: ['New', 'InProgress'],
+      category: ['Cleaning', 'Outdoor'],
       property_name: 'Åkerveien 3',
     },
     search: 'takrenne',
@@ -18,8 +18,8 @@ void test('createTaskPageUrl serializes combined task query state', () => {
   });
 
   assert.equal(url.pathname, '/api/tasks');
-  assert.equal(url.searchParams.get('filter[status]'), 'InProgress');
-  assert.equal(url.searchParams.get('filter[category]'), 'Outdoor');
+  assert.deepEqual(url.searchParams.getAll('filter[status]'), ['New', 'InProgress']);
+  assert.deepEqual(url.searchParams.getAll('filter[category]'), ['Cleaning', 'Outdoor']);
   assert.equal(url.searchParams.get('filter[property_name]'), 'Åkerveien 3');
   assert.equal(url.searchParams.get('search'), 'takrenne');
   assert.equal(url.searchParams.get('sortBy'), 'dueDate');

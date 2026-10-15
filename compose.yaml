@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     environment:
+      CHOKIDAR_USEPOLLING: 'true'
       DB_PATH: /data/tasks.db
       PORT: 8080
     ports:

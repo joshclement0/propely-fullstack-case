@@ -8,14 +8,16 @@ import {
   type TaskSortField,
   type TaskStatus,
 } from '@propely-case/contracts';
+import { TASK_FIELDS, type TaskField } from './task-fields';
 
 export const PAGE_SIZES = [20, 50, 100] as const;
 
 export interface TaskViewQuery {
   search: string;
-  status: TaskStatus | '';
-  category: TaskCategory | '';
+  statuses: TaskStatus[];
+  categories: TaskCategory[];
   propertyName: string;
+  hiddenFields: TaskField[];
   sortBy: TaskSortField;
   sortDirection: TaskSortDirection;
   pageSize: (typeof PAGE_SIZES)[number];
@@ -25,9 +27,10 @@ export interface TaskViewQuery {
 
 export const DEFAULT_TASK_VIEW_QUERY: TaskViewQuery = {
   search: '',
-  status: '',
-  category: '',
+  statuses: [],
+  categories: [],
   propertyName: '',
+  hiddenFields: [],
   sortBy: 'createdAt',
   sortDirection: 'desc',
   pageSize: 20,
@@ -35,11 +38,18 @@ export const DEFAULT_TASK_VIEW_QUERY: TaskViewQuery = {
   page: 1,
 };
 
-export const parseStatus = (value: string): TaskStatus | '' =>
-  TASK_STATUSES.find((status) => status === value) ?? '';
+const parseStatuses = (values: string[]): TaskStatus[] =>
+  TASK_STATUSES.filter((status) => values.includes(status));
 
-export const parseCategory = (value: string): TaskCategory | '' =>
-  TASK_CATEGORIES.find((category) => category === value) ?? '';
+const parseCategories = (values: string[]): TaskCategory[] =>
+  TASK_CATEGORIES.filter((category) => values.includes(category));
+
+const parseHiddenFields = (values: string[]): TaskField[] => {
+  const hiddenFields = TASK_FIELDS.filter((field) => values.includes(field));
+  return hiddenFields.length === TASK_FIELDS.length
+    ? hiddenFields.filter((field) => field !== 'title')
+    : hiddenFields;
+};
 
 export const parsePageSize = (value: string): TaskViewQuery['pageSize'] => {
   const pageSize = Number(value);
@@ -65,9 +75,10 @@ export function parseTaskViewQuery(searchParams: URLSearchParams): TaskViewQuery
 
   return {
     search: searchParams.get('search') ?? '',
-    status: parseStatus(searchParams.get('status') ?? ''),
-    category: parseCategory(searchParams.get('category') ?? ''),
+    statuses: parseStatuses(searchParams.getAll('status')),
+    categories: parseCategories(searchParams.getAll('category')),
     propertyName: searchParams.get('property') ?? '',
+    hiddenFields: parseHiddenFields(searchParams.getAll('hidden')),
     sortBy: parseSortField(searchParams.get('sortBy')),
     sortDirection: parseSortDirection(searchParams.get('sortDirection')),
     pageSize: parsePageSize(searchParams.get('pageSize') ?? ''),
@@ -80,9 +91,10 @@ export function serializeTaskViewQuery(query: TaskViewQuery): URLSearchParams {
   const searchParams = new URLSearchParams();
 
   if (query.search) searchParams.set('search', query.search);
-  if (query.status) searchParams.set('status', query.status);
-  if (query.category) searchParams.set('category', query.category);
+  query.statuses.forEach((status) => searchParams.append('status', status));
+  query.categories.forEach((category) => searchParams.append('category', category));
   if (query.propertyName) searchParams.set('property', query.propertyName);
+  query.hiddenFields.forEach((field) => searchParams.append('hidden', field));
   searchParams.set('sortBy', query.sortBy);
   searchParams.set('sortDirection', query.sortDirection);
   searchParams.set('pageSize', String(query.pageSize));
